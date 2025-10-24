@@ -1,7 +1,7 @@
 export enum Role {
   ADMIN = 'ADMIN',
   MEMBER = 'MEMBER',
-  GUEST = 'GUEST',
+  GUEST = 'GUEST', // Represents Viewer
 }
 
 export interface User {
@@ -11,6 +11,7 @@ export interface User {
   email?: string;
   role: Role;
   avatarUrl: string;
+  password?: string;
 }
 
 export interface Post {
@@ -23,6 +24,7 @@ export interface Post {
 
 export interface Announcement {
   id: string;
+  authorId: string;
   title: string;
   content: string;
   createdAt: Date;
@@ -30,6 +32,7 @@ export interface Announcement {
 
 export interface Achievement {
   id: string;
+  authorId: string;
   title: string;
   description: string;
   imageUrl: string;
@@ -38,6 +41,7 @@ export interface Achievement {
 
 export interface Event {
   id: string;
+  authorId: string;
   title: string;
   description: string;
   date: Date;
@@ -45,10 +49,27 @@ export interface Event {
   registrationLink: string;
 }
 
+export interface Notification {
+    id: string;
+    content: string;
+    createdAt: Date;
+    read: boolean;
+    linkTo?: { page: Page, id: string };
+}
+
+export interface ChatMessage {
+    id: string;
+    authorId: string;
+    content?: string;
+    imageUrl?: string;
+    createdAt: Date;
+}
+
 export enum Page {
   HOME = 'HOME',
   ANNOUNCEMENTS = 'ANNOUNCEMENTS',
   ACHIEVEMENTS = 'ACHIEVEMENTS',
   EVENTS = 'EVENTS',
-  ADMIN = 'ADMIN',
+  PROFILE = 'PROFILE',
+  CHAT = 'CHAT',
 }
