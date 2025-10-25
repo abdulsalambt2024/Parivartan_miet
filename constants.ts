@@ -1,4 +1,4 @@
-import { Role, User, Post, Announcement, Achievement, Event, ChatMessage } from './types';
+import { Role, User, Post, Announcement, Achievement, Event, ChatMessage, Task, TaskStatus } from './types';
 
 // FIX: Replaced corrupted/truncated base64 string with a valid one to resolve parsing error.
 export const PARIVARTAN_LOGO = 'data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAQAAAC1HAwCAAAAC0lEQVR42mNkYAAAAAYAAjCB0C8AAAAASUVORK5CYII=';
@@ -153,5 +153,48 @@ export const MOCK_CHAT_MESSAGES: ChatMessage[] = [
         imageUrl: 'https://storage.googleapis.com/aistudio-hosting/prompts/images/signup-sheet.jpg',
         content: 'Great, I will bring the volunteer sign-up sheets. Here\'s how they look.',
         createdAt: new Date(Date.now() - 1000 * 60 * 5),
+    }
+];
+
+export const MOCK_TASKS: Task[] = [
+    {
+        id: 'task-1',
+        title: 'Prepare material for weekend classes',
+        description: 'Get printouts of worksheets and gather all required stationery.',
+        creatorId: 'user-1',
+        assigneeId: 'user-2',
+        dueDate: new Date(Date.now() + 1000 * 60 * 60 * 24 * 3), // 3 days from now
+        createdAt: new Date(Date.now() - 1000 * 60 * 60 * 24),
+        status: TaskStatus.IN_PROGRESS,
+    },
+    {
+        id: 'task-2',
+        title: 'Finalize book collection points',
+        description: 'Coordinate with college authorities to finalize the 3 collection points for the book drive.',
+        creatorId: 'user-2',
+        assigneeId: 'user-3',
+        dueDate: new Date(Date.now() + 1000 * 60 * 60 * 24 * 5), // 5 days from now
+        createdAt: new Date(Date.now() - 1000 * 60 * 30),
+        status: TaskStatus.TODO,
+    },
+    {
+        id: 'task-3',
+        title: 'Design promotional poster for clothes drive',
+        description: 'Create an eye-catching poster for social media and notice boards.',
+        creatorId: 'user-1',
+        assigneeId: 'user-4',
+        dueDate: new Date(Date.now() + 1000 * 60 * 60 * 24 * 2), // 2 days from now
+        createdAt: new Date(Date.now() - 1000 * 60 * 60 * 4),
+        status: TaskStatus.TODO,
+    },
+    {
+        id: 'task-4',
+        title: 'Submit annual activity report',
+        description: 'Compile all activity reports from the last year and submit to the dean\'s office.',
+        creatorId: 'user-1',
+        assigneeId: 'user-1',
+        dueDate: new Date(Date.now() - 1000 * 60 * 60 * 24), // yesterday
+        createdAt: new Date(Date.now() - 1000 * 60 * 60 * 24 * 10),
+        status: TaskStatus.DONE,
     }
 ];

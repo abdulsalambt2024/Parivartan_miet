@@ -1,13 +1,16 @@
 import React, { useState, useEffect, useMemo, useCallback } from 'react';
-import { MOCK_USERS, MOCK_POSTS, MOCK_ANNOUNCEMENTS, MOCK_ACHIEVEMENTS, MOCK_EVENTS, MOCK_CHAT_MESSAGES, ADMIN_USERNAME, ADMIN_PASSWORD, VIEWER_USER, PARIVARTAN_LOGO } from './constants';
-import { Role, User, Post, Announcement, Achievement, Event, Page, Notification, ChatMessage } from './types';
-import { HomeIcon, AnnouncementIcon, AchievementIcon, LogoutIcon, PlusIcon, TrashIcon, CalendarIcon, LoginIcon, EditIcon, SearchIcon, BellIcon, UserIcon, ChatIcon } from './components/Icons';
+import { MOCK_USERS, MOCK_POSTS, MOCK_ANNOUNCEMENTS, MOCK_ACHIEVEMENTS, MOCK_EVENTS, MOCK_CHAT_MESSAGES, MOCK_TASKS, ADMIN_USERNAME, ADMIN_PASSWORD, VIEWER_USER, PARIVARTAN_LOGO } from './constants';
+import { Role, User, Post, Announcement, Achievement, Event, Page, Notification, ChatMessage, Task, TaskStatus } from './types';
+import { HomeIcon, AnnouncementIcon, AchievementIcon, LogoutIcon, PlusIcon, TrashIcon, CalendarIcon, LoginIcon, EditIcon, SearchIcon, BellIcon, UserIcon, ChatIcon, SparklesIcon, SpeakerIcon, TaskIcon } from './components/Icons';
 import CreatePost from './components/CreatePost';
 import CreateEvent from './components/CreateEvent';
 import CreateAnnouncement from './components/CreateAnnouncement';
 import CreateAchievement from './components/CreateAchievement';
 import ProfilePage from './components/ProfilePage';
 import ChatPage from './components/ChatPage';
+import AiMagicPage from './components/AiMagicPage';
+import TasksPage from './components/TasksPage';
+import { generateSpeech } from './services/geminiService';
 
 // --- HELPER & GENERIC COMPONENTS ---
 
@@ -27,6 +30,12 @@ const useClickOutside = (ref: React.RefObject<HTMLElement>, handler: () => void)
         };
     }, [ref, handler]);
 };
+
+const LoadingSpinner = () => (
+    <div className="flex items-center justify-center h-full">
+        <div className="w-16 h-16 border-4 border-primary border-t-transparent rounded-full animate-spin"></div>
+    </div>
+);
 
 
 // --- LOGIN AND AUTH COMPONENTS ---
@@ -127,7 +136,9 @@ const SideNav = ({ activePage, onNavigate, onLogout, user }: { activePage: Page;
     ];
     
     const memberNavItems = [
+        { page: Page.TASKS, icon: TaskIcon, label: 'Tasks' },
         { page: Page.CHAT, icon: ChatIcon, label: 'Group Chat' },
+        { page: Page.AI_MAGIC, icon: SparklesIcon, label: 'AI Magic' },
         { page: Page.PROFILE, icon: UserIcon, label: 'My Profile' },
     ]
 
@@ -239,20 +250,44 @@ interface PostCardProps {
     canDelete: boolean;
 }
 
-const PostCard: React.FC<PostCardProps> = ({ post, author, onDelete, canDelete }) => (
-    <div className="bg-white rounded-xl shadow-md overflow-hidden transform hover:scale-[1.02] transition-transform duration-300">
+const PostCard: React.FC<PostCardProps> = ({ post, author, onDelete, canDelete }) => {
+    const [isPlaying, setIsPlaying] = useState(false);
+    
+    const handlePlaySound = async (text: string) => {
+        if (isPlaying) return;
+        setIsPlaying(true);
+        try {
+            const base64Audio = await generateSpeech(text);
+            const audioBlob = new Blob([Uint8Array.from(atob(base64Audio), c => c.charCodeAt(0))], { type: 'audio/mpeg' });
+            const audioUrl = URL.createObjectURL(audioBlob);
+            const audio = new Audio(audioUrl);
+            audio.play();
+            audio.onended = () => setIsPlaying(false);
+        } catch (error) {
+            console.error("Failed to play audio", error);
+            setIsPlaying(false);
+        }
+    };
+    
+    return (
+    <div className="bg-white rounded-xl shadow-md hover:shadow-xl overflow-hidden transform hover:scale-[1.01] transition-all duration-300">
         <div className="p-6">
-             <div className="flex items-center mb-4">
+             <div className="flex items-start mb-4">
                 <img className="w-10 h-10 rounded-full mr-4 object-cover" src={author?.avatarUrl} alt={author?.name} />
-                <div>
+                <div className="flex-grow">
                     <div className="font-bold text-dark text-lg">{author?.name}</div>
                     <p className="text-gray-500 text-sm">{post.createdAt.toLocaleString()}</p>
                 </div>
-                {canDelete && (
-                    <button onClick={() => onDelete(post.id)} className="ml-auto text-red-500 hover:text-red-700 p-2 rounded-full hover:bg-red-100">
-                        <TrashIcon className="w-5 h-5" />
+                <div className="flex items-center">
+                    <button onClick={() => handlePlaySound(post.content)} disabled={isPlaying} className="text-gray-500 hover:text-primary p-2 rounded-full hover:bg-gray-100 disabled:opacity-50">
+                        <SpeakerIcon className="w-5 h-5" />
                     </button>
-                )}
+                    {canDelete && (
+                        <button onClick={() => onDelete(post.id)} className="text-gray-500 hover:text-red-700 p-2 rounded-full hover:bg-red-100">
+                            <TrashIcon className="w-5 h-5" />
+                        </button>
+                    )}
+                </div>
             </div>
             <p className="text-gray-700">{post.content}</p>
         </div>
@@ -260,7 +295,7 @@ const PostCard: React.FC<PostCardProps> = ({ post, author, onDelete, canDelete }
             <img className="h-64 w-full object-cover" src={post.imageUrl} alt="Post image" />
         )}
     </div>
-);
+)};
 
 const HomeFeed = ({ posts, users, currentUser, onAddPost, onDeletePost }: { posts: Post[]; users: User[]; currentUser: User; onAddPost: (post: Omit<Post, 'id' | 'createdAt'>) => void; onDeletePost: (postId: string) => void; }) => {
     const [isCreatingPost, setIsCreatingPost] = useState(false);
@@ -299,7 +334,24 @@ const HomeFeed = ({ posts, users, currentUser, onAddPost, onDeletePost }: { post
 
 const AnnouncementsPage = ({ announcements, currentUser, onSave, onDelete }: { announcements: Announcement[], currentUser: User, onSave: (announcement: Omit<Announcement, 'id' | 'createdAt'>) => void, onDelete: (announcementId: string) => void }) => {
     const [editingAnnouncement, setEditingAnnouncement] = useState<Announcement | 'new' | null>(null);
+    const [isPlaying, setIsPlaying] = useState<string | null>(null);
     const canManage = currentUser.role === Role.ADMIN || currentUser.role === Role.MEMBER;
+    
+    const handlePlaySound = async (id: string, text: string) => {
+        if (isPlaying) return;
+        setIsPlaying(id);
+        try {
+            const base64Audio = await generateSpeech(text);
+            const audioBlob = new Blob([Uint8Array.from(atob(base64Audio), c => c.charCodeAt(0))], { type: 'audio/mpeg' });
+            const audioUrl = URL.createObjectURL(audioBlob);
+            const audio = new Audio(audioUrl);
+            audio.play();
+            audio.onended = () => setIsPlaying(null);
+        } catch (error) {
+            console.error("Failed to play audio", error);
+            setIsPlaying(null);
+        }
+    };
     
     return (
     <div className="p-8">
@@ -323,12 +375,17 @@ const AnnouncementsPage = ({ announcements, currentUser, onSave, onDelete }: { a
                             <h2 className="text-2xl font-bold text-primary mb-2">{ann.title}</h2>
                             <p className="text-sm text-gray-500 mb-4">{ann.createdAt.toLocaleDateString()}</p>
                         </div>
-                        {canManage && (
-                            <div className="flex space-x-2 flex-shrink-0 ml-4">
+                        <div className="flex space-x-2 flex-shrink-0 ml-4">
+                            <button onClick={() => handlePlaySound(ann.id, `${ann.title}. ${ann.content}`)} disabled={!!isPlaying} className="text-gray-500 hover:text-primary p-2 rounded-full hover:bg-gray-100 disabled:opacity-50">
+                                <SpeakerIcon className="w-5 h-5"/>
+                            </button>
+                            {canManage && (
+                                <>
                                 <button onClick={() => setEditingAnnouncement(ann)} className="text-gray-500 hover:text-primary p-2 rounded-full hover:bg-gray-100 transition"><EditIcon className="w-5 h-5"/></button>
                                 <button onClick={() => onDelete(ann.id)} className="text-gray-500 hover:text-red-500 p-2 rounded-full hover:bg-red-100 transition"><TrashIcon className="w-5 h-5" /></button>
-                            </div>
-                        )}
+                                </>
+                            )}
+                        </div>
                     </div>
                     <p className="text-gray-700 whitespace-pre-wrap">{ann.content}</p>
                 </div>
@@ -535,29 +592,78 @@ export default function App() {
     const [announcements, setAnnouncements] = useState<Announcement[]>(() => MOCK_ANNOUNCEMENTS.sort((a,b) => b.createdAt.getTime() - a.createdAt.getTime()));
     const [achievements, setAchievements] = useState<Achievement[]>(() => MOCK_ACHIEVEMENTS.sort((a,b) => b.date.getTime() - a.date.getTime()));
     const [events, setEvents] = useState<Event[]>(MOCK_EVENTS);
+    const [tasks, setTasks] = useState<Task[]>(() => MOCK_TASKS.sort((a,b) => b.createdAt.getTime() - a.createdAt.getTime()));
     const [chatMessages, setChatMessages] = useState<ChatMessage[]>(() => MOCK_CHAT_MESSAGES.sort((a,b) => a.createdAt.getTime() - b.createdAt.getTime()));
     const [notifications, setNotifications] = useState<Notification[]>([]);
+    const [notifiedTaskIds, setNotifiedTaskIds] = useState<Set<string>>(new Set());
 
     // UI State
     const [searchQuery, setSearchQuery] = useState('');
     const [isSearchOpen, setIsSearchOpen] = useState(false);
+    const [isLoading, setIsLoading] = useState(true);
+
+    useEffect(() => {
+        const timer = setTimeout(() => setIsLoading(false), 1500);
+        return () => clearTimeout(timer);
+    }, []);
 
     const unreadNotificationCount = useMemo(() => notifications.filter(n => !n.read).length, [notifications]);
 
     // --- NOTIFICATION HANDLER ---
-    const createNotification = (content: string) => {
+    const createNotification = useCallback((content: string, linkTo?: { page: Page; id: string }) => {
         const newNotification: Notification = {
-            id: `notif-${Date.now()}`,
+            id: `notif-${Date.now()}-${Math.random()}`,
             content,
             createdAt: new Date(),
             read: false,
+            linkTo,
         };
-        setNotifications(prev => [newNotification, ...prev]);
-    }
+        setNotifications(prev => {
+            if (prev.some(n => n.content === content)) {
+                return prev;
+            }
+            return [newNotification, ...prev];
+        });
+    }, []);
 
     const handleReadNotification = (id: string) => {
+        const notification = notifications.find(n => n.id === id);
+        if (notification?.linkTo) {
+            setActivePage(notification.linkTo.page);
+        }
         setNotifications(prev => prev.map(n => n.id === id ? { ...n, read: true } : n));
-    }
+    };
+
+    useEffect(() => {
+        if (!currentUser || currentUser.role === Role.GUEST) return;
+
+        const now = new Date();
+        const oneDayFromNow = new Date(now.getTime() + 24 * 60 * 60 * 1000);
+        const newNotifiedIds = new Set(notifiedTaskIds);
+
+        tasks.forEach(task => {
+            if (task.assigneeId === currentUser.id && task.status !== TaskStatus.DONE) {
+                const dueDate = new Date(task.dueDate);
+                const hasBeenNotified = notifiedTaskIds.has(task.id);
+
+                if (!hasBeenNotified) {
+                    if (dueDate < now) {
+                        createNotification(`Task "${task.title}" is overdue!`, { page: Page.TASKS, id: task.id });
+                        newNotifiedIds.add(task.id);
+                    } else if (dueDate <= oneDayFromNow) {
+                        createNotification(`Task "${task.title}" is due within 24 hours.`, { page: Page.TASKS, id: task.id });
+                        newNotifiedIds.add(task.id);
+                    }
+                }
+            }
+        });
+
+        if (newNotifiedIds.size > notifiedTaskIds.size) {
+            setNotifiedTaskIds(newNotifiedIds);
+        }
+
+    }, [tasks, currentUser, createNotification, notifiedTaskIds]);
+
 
     // --- AUTH HANDLERS ---
     const handleLogin = (username: string, pass: string) => {
@@ -595,7 +701,9 @@ export default function App() {
     };
 
     const handleDeletePost = (postId: string) => {
-        setPosts(prev => prev.filter(p => p.id !== postId));
+        if (window.confirm('Are you sure you want to delete this post?')) {
+            setPosts(prev => prev.filter(p => p.id !== postId));
+        }
     };
     
     const handleSaveEvent = (eventData: Omit<Event, 'id' | 'authorId'> | Event) => {
@@ -604,12 +712,14 @@ export default function App() {
         } else { // Create
             const newEvent: Event = { ...eventData, id: `event-${Date.now()}`, authorId: currentUser!.id };
             setEvents(prev => [newEvent, ...prev].sort((a, b) => new Date(b.date).getTime() - new Date(a.date).getTime()));
-            createNotification(`New Event Posted: "${newEvent.title}"`);
+            createNotification(`New Event Posted: "${newEvent.title}"`, { page: Page.EVENTS, id: newEvent.id });
         }
     };
 
     const handleDeleteEvent = (eventId: string) => {
-        setEvents(prev => prev.filter(e => e.id !== eventId));
+        if (window.confirm('Are you sure you want to delete this event?')) {
+            setEvents(prev => prev.filter(e => e.id !== eventId));
+        }
     };
 
     const handleSaveAnnouncement = (annData: Omit<Announcement, 'id' | 'createdAt' | 'authorId'> | Announcement) => {
@@ -618,12 +728,14 @@ export default function App() {
         } else { // Create
             const newAnn: Announcement = { ...annData, id: `ann-${Date.now()}`, createdAt: new Date(), authorId: currentUser!.id };
             setAnnouncements(prev => [newAnn, ...prev]);
-            createNotification(`New Announcement: "${newAnn.title}"`);
+            createNotification(`New Announcement: "${newAnn.title}"`, { page: Page.ANNOUNCEMENTS, id: newAnn.id });
         }
     };
 
     const handleDeleteAnnouncement = (annId: string) => {
-        setAnnouncements(prev => prev.filter(a => a.id !== annId));
+        if (window.confirm('Are you sure you want to delete this announcement?')) {
+            setAnnouncements(prev => prev.filter(a => a.id !== annId));
+        }
     };
 
     const handleSaveAchievement = (achData: Omit<Achievement, 'id' | 'authorId'> | Achievement) => {
@@ -636,8 +748,40 @@ export default function App() {
     };
 
     const handleDeleteAchievement = (achId: string) => {
-        setAchievements(prev => prev.filter(a => a.id !== achId));
+        if (window.confirm('Are you sure you want to delete this achievement?')) {
+            setAchievements(prev => prev.filter(a => a.id !== achId));
+        }
     };
+
+    const handleSaveTask = (taskData: Omit<Task, 'id' | 'createdAt' | 'creatorId' | 'status'> | Task) => {
+        if ('id' in taskData) { // Update
+            const oldTask = tasks.find(t => t.id === taskData.id);
+            setTasks(prev => prev.map(t => t.id === taskData.id ? {...t, ...taskData} : t));
+
+            if (oldTask && taskData.assigneeId && oldTask.assigneeId !== taskData.assigneeId) {
+                createNotification(`You have been assigned a task: "${taskData.title}"`, { page: Page.TASKS, id: taskData.id });
+            }
+
+            setNotifiedTaskIds(prev => {
+                const newSet = new Set(prev);
+                newSet.delete(taskData.id);
+                return newSet;
+            });
+        } else { // Create
+            const newTask: Task = { ...taskData, id: `task-${Date.now()}`, createdAt: new Date(), creatorId: currentUser!.id, status: TaskStatus.TODO };
+            setTasks(prev => [newTask, ...prev]);
+            if (newTask.assigneeId && newTask.assigneeId !== currentUser!.id) {
+                createNotification(`You have been assigned a new task: "${newTask.title}"`, { page: Page.TASKS, id: newTask.id });
+            }
+        }
+    };
+
+    const handleDeleteTask = (taskId: string) => {
+        if (window.confirm('Are you sure you want to delete this task?')) {
+            setTasks(prev => prev.filter(t => t.id !== taskId));
+        }
+    };
+
 
     // --- USER & CHAT HANDLERS ---
     const handleAddUser = (userData: Omit<User, 'id' | 'role' | 'avatarUrl' | 'email'>) => {
@@ -654,9 +798,10 @@ export default function App() {
     };
 
     const handleDeleteUser = (userId: string) => {
-        if (window.confirm('Are you sure you want to remove this member? This will also remove all their posts.')) {
+        if (window.confirm('Are you sure you want to remove this member? This will remove all their posts and tasks.')) {
             setUsers(prev => prev.filter(u => u.id !== userId));
             setPosts(prev => prev.filter(p => p.authorId !== userId));
+            setTasks(prev => prev.filter(t => t.creatorId !== userId && t.assigneeId !== userId));
         }
     };
     
@@ -693,10 +838,14 @@ export default function App() {
                 return <AchievementsPage achievements={achievements} currentUser={currentUser} onSave={handleSaveAchievement} onDelete={handleDeleteAchievement} />;
             case Page.EVENTS:
                 return <EventsPage events={events} currentUser={currentUser} onSaveEvent={handleSaveEvent} onDeleteEvent={handleDeleteEvent} />;
+            case Page.TASKS:
+                return <TasksPage tasks={tasks} users={users} currentUser={currentUser} onSaveTask={handleSaveTask} onDeleteTask={handleDeleteTask} />;
             case Page.PROFILE:
                 return <ProfilePage currentUser={currentUser} users={users} posts={posts} onAddUser={handleAddUser} onDeleteUser={handleDeleteUser} onDeletePost={handleDeletePost} />;
             case Page.CHAT:
                  return <ChatPage currentUser={currentUser} users={users} messages={chatMessages} onSendMessage={handleSendMessage} />;
+            case Page.AI_MAGIC:
+                return <AiMagicPage />;
             default:
                 return <HomeFeed posts={posts} users={users} currentUser={currentUser} onAddPost={handleAddPost} onDeletePost={handleDeletePost} />;
         }
@@ -715,7 +864,7 @@ export default function App() {
                     onReadNotification={handleReadNotification}
                 />
                 <div className="overflow-y-auto" style={{ height: 'calc(100vh - 65px)' }}>
-                  {renderPage()}
+                  {isLoading ? <LoadingSpinner /> : renderPage()}
                 </div>
             </main>
             {isSearchOpen && <SearchResults query={searchQuery} posts={posts} announcements={announcements} achievements={achievements} events={events} users={users} onClose={() => setIsSearchOpen(false)} onNavigate={setActivePage} />}

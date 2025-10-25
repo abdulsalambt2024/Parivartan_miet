@@ -1,5 +1,6 @@
 import React, { useState, useMemo } from 'react';
-import type { User, Post, Role } from '../types';
+// FIX: Changed import for 'Role' from type-only to a value import to allow its use in runtime enum comparisons.
+import { Role, type User, type Post } from '../types';
 import { PlusIcon, TrashIcon } from './Icons';
 import CreateMember from './CreateMember';
 

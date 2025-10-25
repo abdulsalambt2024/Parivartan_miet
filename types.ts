@@ -65,11 +65,30 @@ export interface ChatMessage {
     createdAt: Date;
 }
 
+export enum TaskStatus {
+  TODO = 'TODO',
+  IN_PROGRESS = 'IN_PROGRESS',
+  DONE = 'DONE',
+}
+
+export interface Task {
+  id: string;
+  title: string;
+  description: string;
+  creatorId: string;
+  assigneeId?: string;
+  dueDate: Date;
+  createdAt: Date;
+  status: TaskStatus;
+}
+
 export enum Page {
   HOME = 'HOME',
   ANNOUNCEMENTS = 'ANNOUNCEMENTS',
   ACHIEVEMENTS = 'ACHIEVEMENTS',
   EVENTS = 'EVENTS',
+  TASKS = 'TASKS',
   PROFILE = 'PROFILE',
   CHAT = 'CHAT',
+  AI_MAGIC = 'AI_MAGIC',
 }
