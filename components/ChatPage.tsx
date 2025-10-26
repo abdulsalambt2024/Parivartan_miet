@@ -20,7 +20,7 @@ const MessageItem: React.FC<MessageItemProps> = ({ msg, currentUser, author }) =
     return (
         <div className={`flex items-end gap-2 ${isMe ? 'justify-end' : ''}`}>
             {!isMe && <img src={author.avatarUrl} alt={author.name} className="w-8 h-8 rounded-full" />}
-            <div className={`max-w-xs md:max-w-md lg:max-w-lg rounded-xl px-4 py-2 ${isMe ? 'bg-primary text-white' : 'bg-white shadow-sm'}`}>
+            <div className={`max-w-xs md:max-w-md lg:max-w-lg rounded-xl px-4 py-2 ${isMe ? 'bg-primary text-white' : 'bg-white dark:bg-gray-700 shadow-sm'}`}>
                 {!isMe && (
                     <div className="font-bold text-sm flex items-center gap-1 text-primary">
                       <span>{author.name}</span>
@@ -29,7 +29,7 @@ const MessageItem: React.FC<MessageItemProps> = ({ msg, currentUser, author }) =
                 )}
                 {msg.imageUrl && <img src={msg.imageUrl} alt="chat attachment" className="rounded-lg my-2 max-h-48" />}
                 {msg.content && <p className="text-base whitespace-pre-wrap">{msg.content}</p>}
-                <p className={`text-xs mt-1 ${isMe ? 'text-blue-200' : 'text-gray-500'} text-right`}>{new Date(msg.createdAt).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}</p>
+                <p className={`text-xs mt-1 ${isMe ? 'text-blue-200' : 'text-gray-500 dark:text-gray-400'} text-right`}>{new Date(msg.createdAt).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}</p>
             </div>
              {isMe && <img src={author.avatarUrl} alt={author.name} className="w-8 h-8 rounded-full" />}
         </div>
@@ -128,9 +128,9 @@ const ChatPage: React.FC<ChatPageProps> = ({ currentUser, users, messages, onSen
     };
 
     return (
-        <div className="flex flex-col h-full bg-light">
-            <div className="p-4 border-b bg-white/80 backdrop-blur-sm sticky top-0">
-                 <h1 className="text-2xl font-bold text-dark">Group Chat</h1>
+        <div className="flex flex-col h-full bg-light dark:bg-gray-900">
+            <div className="p-4 border-b dark:border-gray-700 bg-white/80 dark:bg-gray-800/80 backdrop-blur-sm sticky top-0">
+                 <h1 className="text-2xl font-bold text-dark dark:text-light">Group Chat</h1>
             </div>
             <div className="flex-1 overflow-y-auto p-4 space-y-4">
                 {messages.map(msg => (
@@ -138,7 +138,7 @@ const ChatPage: React.FC<ChatPageProps> = ({ currentUser, users, messages, onSen
                 ))}
                 <div ref={messagesEndRef} />
             </div>
-            <div className="p-4 bg-white border-t">
+            <div className="p-4 bg-white dark:bg-gray-800 border-t dark:border-gray-700">
                  {image && (
                     <div className="relative w-32 mb-2">
                         <img src={image} alt="preview" className="rounded-lg h-32 w-32 object-cover"/>
@@ -153,7 +153,7 @@ const ChatPage: React.FC<ChatPageProps> = ({ currentUser, users, messages, onSen
                  )}
                 <form onSubmit={handleSendMessage} className="flex items-center gap-2">
                     <input type="file" accept="image/*" onChange={handleImageUpload} ref={fileInputRef} className="hidden" id="image-upload" />
-                    <button type="button" onClick={() => fileInputRef.current?.click()} className="p-2 text-gray-500 hover:text-primary transition rounded-full hover:bg-gray-100">
+                    <button type="button" onClick={() => fileInputRef.current?.click()} className="p-2 text-gray-500 hover:text-primary transition rounded-full hover:bg-gray-100 dark:hover:bg-gray-700">
                         <ImageIcon className="w-6 h-6" />
                     </button>
                     <input
@@ -161,10 +161,10 @@ const ChatPage: React.FC<ChatPageProps> = ({ currentUser, users, messages, onSen
                         value={newMessage}
                         onChange={(e) => setNewMessage(e.target.value)}
                         placeholder={isRecording ? 'Recording...' : isTranscribing ? 'Transcribing...' : 'Type a message...'}
-                        className="flex-1 p-3 border border-gray-300 rounded-full focus:ring-2 focus:ring-primary focus:border-primary transition"
+                        className="flex-1 p-3 border border-gray-300 rounded-full focus:ring-2 focus:ring-primary focus:border-primary transition bg-transparent dark:border-gray-600 dark:placeholder-gray-400"
                         disabled={isRecording || isTranscribing}
                     />
-                    <button type="button" onClick={handleToggleRecording} className={`p-3 rounded-full transition ${isRecording ? 'bg-red-500 text-white animate-pulse' : 'text-gray-500 hover:text-primary hover:bg-gray-100'}`}>
+                    <button type="button" onClick={handleToggleRecording} className={`p-3 rounded-full transition ${isRecording ? 'bg-red-500 text-white animate-pulse' : 'text-gray-500 hover:text-primary hover:bg-gray-100 dark:hover:bg-gray-700'}`}>
                         <MicrophoneIcon className="w-6 h-6" />
                     </button>
                     <button type="submit" className="bg-primary text-white rounded-full p-3 hover:bg-opacity-90 transition disabled:bg-gray-400" disabled={!newMessage.trim() && !image}>

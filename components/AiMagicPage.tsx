@@ -1,17 +1,17 @@
 import React, { useState, useEffect } from 'react';
 import { marked } from 'marked';
-import { analyzeImage, generateImage, groundedSearch, generateSpeech } from '../services/geminiService';
+import { analyzeImage, generateImage, generatePosterContent, enhanceImage, editImage } from '../services/geminiService';
 import { SparklesIcon } from './Icons';
 
-type AiTool = 'image-gen' | 'image-inspect' | 'research';
+type AiTool = 'poster-gen' | 'image-enhance' | 'image-gen' | 'image-inspect' | 'image-edit';
 
 const AiMagicPage = () => {
-    const [activeTool, setActiveTool] = useState<AiTool>('image-gen');
+    const [activeTool, setActiveTool] = useState<AiTool>('poster-gen');
 
     const ToolButton = ({ tool, label }: { tool: AiTool; label: string }) => (
         <button
             onClick={() => setActiveTool(tool)}
-            className={`px-4 py-2 rounded-full font-semibold transition ${activeTool === tool ? 'bg-primary text-white' : 'bg-white hover:bg-gray-100 text-dark'}`}
+            className={`px-4 py-2 rounded-full font-semibold transition ${activeTool === tool ? 'bg-primary text-white' : 'bg-white dark:bg-gray-700 hover:bg-gray-100 dark:hover:bg-gray-600 text-dark dark:text-light'}`}
         >
             {label}
         </button>
@@ -21,20 +21,186 @@ const AiMagicPage = () => {
         <div className="p-8">
             <div className="flex items-center space-x-4 mb-8">
                 <SparklesIcon className="w-8 h-8 text-primary" />
-                <h1 className="text-3xl font-bold text-dark">AI Magic Tools</h1>
+                <h1 className="text-3xl font-bold text-dark dark:text-light">AI Magic Tools</h1>
             </div>
 
-            <div className="flex space-x-2 p-1 bg-gray-200 rounded-full mb-8 max-w-md">
+            <div className="flex flex-wrap gap-2 p-1 bg-gray-200 dark:bg-gray-800 rounded-full mb-8 max-w-2xl">
+                <ToolButton tool="poster-gen" label="Poster Content Generator" />
+                <ToolButton tool="image-enhance" label="Image Enhancer" />
                 <ToolButton tool="image-gen" label="Image Generator" />
                 <ToolButton tool="image-inspect" label="Image Inspector" />
-                <ToolButton tool="research" label="Research Assistant" />
+                <ToolButton tool="image-edit" label="AI Image Editor" />
             </div>
 
-            <div className="bg-white p-6 rounded-2xl shadow-lg">
+            <div className="bg-white dark:bg-gray-800 p-6 rounded-2xl shadow-lg dark:border dark:border-gray-700">
+                {activeTool === 'poster-gen' && <PosterContentGenerator />}
+                {activeTool === 'image-enhance' && <ImageEnhancer />}
                 {activeTool === 'image-gen' && <ImageGenerator />}
                 {activeTool === 'image-inspect' && <ImageInspector />}
-                {activeTool === 'research' && <ResearchAssistant />}
+                {activeTool === 'image-edit' && <ImageEditor />}
             </div>
+        </div>
+    );
+};
+
+const PosterContentGenerator = () => {
+    const [details, setDetails] = useState({ title: '', date: '', points: '' });
+    const [result, setResult] = useState<string | null>(null);
+    const [isLoading, setIsLoading] = useState(false);
+    const [error, setError] = useState('');
+
+    const handleGenerate = async () => {
+        if (!details.title || !details.date || !details.points) {
+            setError('Please fill in all fields.');
+            return;
+        }
+        setIsLoading(true);
+        setError('');
+        setResult(null);
+        try {
+            const generatedContent = await generatePosterContent(details);
+            setResult(generatedContent);
+        } catch (err) {
+            setError('Failed to generate content. Please try again.');
+        } finally {
+            setIsLoading(false);
+        }
+    };
+    
+    const handleCopy = () => {
+        if (result) {
+            // A simple way to convert markdown to plain text for clipboard
+            const plainText = result.replace(/##\s/g, '').replace(/\*\*/g, '').replace(/-\s/g, '');
+            navigator.clipboard.writeText(plainText)
+                .then(() => alert('Content copied to clipboard!'))
+                .catch(err => console.error('Failed to copy text: ', err));
+        }
+    };
+
+    return (
+        <div>
+            <h2 className="text-2xl font-bold text-dark dark:text-light mb-4">Editable Poster Content Generator</h2>
+            <p className="text-gray-600 dark:text-gray-300 mb-4">Describe your event, and the AI will generate structured text content that you can easily copy and paste into a design tool like Canva.</p>
+            <div className="space-y-4">
+                <input
+                    type="text"
+                    value={details.title}
+                    onChange={(e) => setDetails(d => ({...d, title: e.target.value}))}
+                    placeholder="Event or Topic Title (e.g., Annual Book Donation Drive)"
+                    className="w-full p-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-primary bg-transparent dark:border-gray-600 dark:placeholder-gray-400"
+                />
+                <input
+                    type="text"
+                    value={details.date}
+                    onChange={(e) => setDetails(d => ({...d, date: e.target.value}))}
+                    placeholder="Date, Time, and Venue (e.g., October 28th, 10 AM, College Auditorium)"
+                    className="w-full p-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-primary bg-transparent dark:border-gray-600 dark:placeholder-gray-400"
+                />
+                <textarea
+                    value={details.points}
+                    onChange={(e) => setDetails(d => ({...d, points: e.target.value}))}
+                    placeholder="Key points or details (e.g., Collecting books for all ages, volunteers needed, special guest speaker)"
+                    className="w-full p-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-primary h-24 bg-transparent dark:border-gray-600 dark:placeholder-gray-400"
+                />
+            </div>
+            <div className="text-right my-4">
+                <button
+                    onClick={handleGenerate}
+                    disabled={isLoading}
+                    className="bg-secondary text-dark font-bold px-6 py-3 rounded-full shadow-lg hover:opacity-90 transition disabled:opacity-50"
+                >
+                    {isLoading ? 'Generating...' : 'Generate Content'}
+                </button>
+            </div>
+            {error && <p className="text-red-500 mb-4">{error}</p>}
+            {result && (
+                <div>
+                    <div className="prose prose-lg max-w-none p-4 bg-gray-50 rounded-lg border dark:bg-gray-700 dark:border-gray-600 dark:prose-invert" dangerouslySetInnerHTML={{ __html: marked(result) }} />
+                    <button onClick={handleCopy} className="mt-4 bg-primary text-white font-semibold px-5 py-2 rounded-full hover:bg-opacity-90">
+                        Copy to Clipboard
+                    </button>
+                </div>
+            )}
+        </div>
+    );
+};
+
+const ImageEnhancer = () => {
+    const [originalImage, setOriginalImage] = useState<string | null>(null);
+    const [enhancedImage, setEnhancedImage] = useState<string | null>(null);
+    const [isLoading, setIsLoading] = useState(false);
+    const [error, setError] = useState('');
+
+    const handleImageUpload = (e: React.ChangeEvent<HTMLInputElement>) => {
+        if (e.target.files && e.target.files[0]) {
+            const reader = new FileReader();
+            reader.onloadend = () => {
+                setOriginalImage(reader.result as string);
+                setEnhancedImage(null);
+                setError('');
+            };
+            reader.readAsDataURL(e.target.files[0]);
+        }
+    };
+
+    const handleEnhance = async () => {
+        if (!originalImage) return;
+        setIsLoading(true);
+        setError('');
+        setEnhancedImage(null);
+        try {
+            const result = await enhanceImage(originalImage);
+            setEnhancedImage(result);
+        } catch (err) {
+            setError('Failed to enhance image. This can happen with complex images. Please try another one.');
+        } finally {
+            setIsLoading(false);
+        }
+    };
+    
+    return (
+        <div>
+            <h2 className="text-2xl font-bold text-dark dark:text-light mb-4">AI Image Quality Enhancer</h2>
+            <p className="text-gray-600 dark:text-gray-300 mb-4">Upload an image to automatically improve its sharpness, lighting, and color vibrancy.</p>
+            <input
+                type="file"
+                accept="image/*"
+                onChange={handleImageUpload}
+                className="mb-4 block w-full text-sm text-gray-500 dark:text-gray-400 file:mr-4 file:py-2 file:px-4 file:rounded-full file:border-0 file:text-sm file:font-semibold file:bg-primary/10 file:text-primary hover:file:bg-primary/20"
+            />
+            {originalImage && (
+                <div>
+                    <div className="text-center mb-4">
+                        <button onClick={handleEnhance} disabled={isLoading} className="bg-secondary text-dark font-bold px-6 py-3 rounded-full shadow-lg hover:opacity-90 transition disabled:opacity-50">
+                            {isLoading ? 'Enhancing...' : '✨ Enhance Image'}
+                        </button>
+                    </div>
+                     {error && <p className="text-red-500 text-center mb-4">{error}</p>}
+                    <div className="grid md:grid-cols-2 gap-6">
+                        <div>
+                            <h3 className="font-semibold text-center mb-2 dark:text-light">Original</h3>
+                            <img src={originalImage} alt="Original" className="rounded-lg w-full shadow" />
+                        </div>
+                        <div>
+                             <h3 className="font-semibold text-center mb-2 dark:text-light">Enhanced</h3>
+                             <div className="rounded-lg w-full h-full bg-gray-100 dark:bg-gray-700 flex items-center justify-center aspect-square shadow">
+                                {isLoading ? (
+                                    <div className="text-gray-500 dark:text-gray-400">Processing...</div>
+                                ) : enhancedImage ? (
+                                    <div>
+                                        <img src={enhancedImage} alt="Enhanced" className="rounded-lg w-full" />
+                                        <a href={enhancedImage} download={`enhanced-image-${Date.now()}.png`} className="block text-center mt-4 bg-primary text-white font-semibold px-5 py-2 rounded-full hover:bg-opacity-90">
+                                            Download Enhanced Image
+                                        </a>
+                                    </div>
+                                ) : (
+                                    <div className="text-gray-500 dark:text-gray-400 p-4 text-center">Your enhanced image will appear here.</div>
+                                )}
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            )}
         </div>
     );
 };
@@ -63,16 +229,16 @@ const ImageGenerator = () => {
 
     return (
         <div>
-            <h2 className="text-2xl font-bold text-dark mb-4">Image Generator</h2>
+            <h2 className="text-2xl font-bold text-dark dark:text-light mb-4">Image Generator</h2>
             <textarea
                 value={prompt}
                 onChange={(e) => setPrompt(e.target.value)}
                 placeholder="e.g., A vibrant painting of a student teaching a group of children under a large tree."
-                className="w-full p-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-primary"
+                className="w-full p-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-primary bg-transparent dark:border-gray-600 dark:placeholder-gray-400"
             />
-            <div className="flex items-center justify-between my-4">
+            <div className="flex items-center justify-between my-4 flex-wrap gap-4">
                 <div className="flex items-center space-x-4">
-                    <label className="font-semibold">Aspect Ratio:</label>
+                    <label className="font-semibold dark:text-light">Aspect Ratio:</label>
                     {['1:1', '16:9', '9:16', '4:3', '3:4'].map(ratio => (
                         <label key={ratio} className="flex items-center space-x-1 cursor-pointer">
                             <input
@@ -81,9 +247,9 @@ const ImageGenerator = () => {
                                 value={ratio}
                                 checked={aspectRatio === ratio}
                                 onChange={(e) => setAspectRatio(e.target.value)}
-                                className="h-4 w-4 text-primary focus:ring-primary"
+                                className="h-4 w-4 text-primary focus:ring-primary border-gray-300 dark:border-gray-600 dark:bg-gray-700"
                             />
-                            <span>{ratio}</span>
+                            <span className="dark:text-light">{ratio}</span>
                         </label>
                     ))}
                 </div>
@@ -141,12 +307,12 @@ const ImageInspector = () => {
 
     return (
         <div>
-            <h2 className="text-2xl font-bold text-dark mb-4">Image Inspector</h2>
+            <h2 className="text-2xl font-bold text-dark dark:text-light mb-4">Image Inspector</h2>
             <input
                 type="file"
                 accept="image/*"
                 onChange={handleImageUpload}
-                className="mb-4 block w-full text-sm text-gray-500 file:mr-4 file:py-2 file:px-4 file:rounded-full file:border-0 file:text-sm file:font-semibold file:bg-primary/10 file:text-primary hover:file:bg-primary/20"
+                className="mb-4 block w-full text-sm text-gray-500 dark:text-gray-400 file:mr-4 file:py-2 file:px-4 file:rounded-full file:border-0 file:text-sm file:font-semibold file:bg-primary/10 file:text-primary hover:file:bg-primary/20"
             />
             {image && (
                 <div className="grid md:grid-cols-2 gap-6">
@@ -157,12 +323,12 @@ const ImageInspector = () => {
                         <textarea
                             value={prompt}
                             onChange={e => setPrompt(e.target.value)}
-                            className="w-full p-2 border border-gray-300 rounded-lg mb-2"
+                            className="w-full p-2 border border-gray-300 rounded-lg mb-2 bg-transparent dark:border-gray-600 dark:placeholder-gray-400"
                         />
                         <button onClick={handleAnalyze} disabled={isLoading} className="w-full bg-secondary text-dark font-bold px-6 py-3 rounded-full shadow-lg hover:opacity-90 transition disabled:opacity-50">
                              {isLoading ? 'Analyzing...' : 'Analyze Image'}
                         </button>
-                        {analysis && <div className="mt-4 p-4 bg-gray-50 rounded-lg whitespace-pre-wrap">{analysis}</div>}
+                        {analysis && <div className="mt-4 p-4 bg-gray-50 dark:bg-gray-700 rounded-lg whitespace-pre-wrap">{analysis}</div>}
                     </div>
                 </div>
             )}
@@ -170,20 +336,34 @@ const ImageInspector = () => {
     );
 };
 
-const ResearchAssistant = () => {
-    const [query, setQuery] = useState('');
-    const [result, setResult] = useState<{ text: string; sources: any[] } | null>(null);
+const ImageEditor = () => {
+    const [originalImage, setOriginalImage] = useState<string | null>(null);
+    const [editedImage, setEditedImage] = useState<string | null>(null);
+    const [prompt, setPrompt] = useState('');
     const [isLoading, setIsLoading] = useState(false);
+    const [error, setError] = useState('');
 
-    const handleSearch = async () => {
-        if (!query) return;
+    const handleImageUpload = (e: React.ChangeEvent<HTMLInputElement>) => {
+        if (e.target.files && e.target.files[0]) {
+            const reader = new FileReader();
+            reader.onloadend = () => {
+                setOriginalImage(reader.result as string);
+                setEditedImage(null);
+                setError('');
+            };
+            reader.readAsDataURL(e.target.files[0]);
+        }
+    };
+
+    const handleGenerate = async () => {
+        if (!originalImage || !prompt) return;
         setIsLoading(true);
-        setResult(null);
+        setError('');
         try {
-            const searchResult = await groundedSearch(query);
-            setResult(searchResult);
+            const result = await editImage(originalImage, prompt);
+            setEditedImage(result);
         } catch (err) {
-            setResult({ text: 'An error occurred during search.', sources: [] });
+            setError('Failed to edit image. Please try another prompt or image.');
         } finally {
             setIsLoading(false);
         }
@@ -191,39 +371,57 @@ const ResearchAssistant = () => {
 
     return (
         <div>
-             <h2 className="text-2xl font-bold text-dark mb-4">Research Assistant</h2>
-             <div className="flex items-center space-x-2">
-                <input
-                    type="text"
-                    value={query}
-                    onChange={(e) => setQuery(e.target.value)}
-                    placeholder="Ask a question about recent events or topics..."
-                    className="flex-grow p-3 border border-gray-300 rounded-full focus:ring-2 focus:ring-primary"
-                    onKeyDown={(e) => e.key === 'Enter' && handleSearch()}
-                />
-                <button onClick={handleSearch} disabled={isLoading || !query} className="bg-secondary text-dark font-bold px-6 py-3 rounded-full shadow-lg hover:opacity-90 transition disabled:opacity-50">
-                    {isLoading ? 'Searching...' : 'Search'}
-                </button>
-             </div>
-             {result && (
-                <div className="mt-6">
-                    <div className="prose max-w-none p-4 bg-gray-50 rounded-lg" dangerouslySetInnerHTML={{ __html: marked(result.text) }}></div>
-                    {result.sources.length > 0 && (
-                        <div className="mt-4">
-                            <h3 className="font-semibold">Sources:</h3>
-                            <ul className="list-disc list-inside">
-                                {result.sources.map((source, index) => (
-                                    <li key={index}>
-                                        <a href={source.uri} target="_blank" rel="noopener noreferrer" className="text-primary hover:underline">{source.title || source.uri}</a>
-                                    </li>
-                                ))}
-                            </ul>
+            <h2 className="text-2xl font-bold text-dark dark:text-light mb-4">AI Image Editor</h2>
+            <p className="text-gray-600 dark:text-gray-300 mb-4">Upload an image and use a text prompt to modify it. Add objects, change styles, remove backgrounds, and more.</p>
+            <input
+                type="file"
+                accept="image/*"
+                onChange={handleImageUpload}
+                className="mb-4 block w-full text-sm text-gray-500 dark:text-gray-400 file:mr-4 file:py-2 file:px-4 file:rounded-full file:border-0 file:text-sm file:font-semibold file:bg-primary/10 file:text-primary hover:file:bg-primary/20"
+            />
+            {originalImage && (
+                <div>
+                    <div className="grid md:grid-cols-2 gap-6 mb-4">
+                        <div>
+                            <h3 className="font-semibold text-center mb-2 dark:text-light">Original</h3>
+                            <img src={originalImage} alt="Original" className="rounded-lg w-full shadow" />
                         </div>
-                    )}
+                        <div>
+                             <h3 className="font-semibold text-center mb-2 dark:text-light">Edited</h3>
+                             <div className="rounded-lg w-full h-full bg-gray-100 dark:bg-gray-700 flex items-center justify-center aspect-square shadow">
+                                {isLoading ? (
+                                    <div className="text-gray-500 dark:text-gray-400">Processing...</div>
+                                ) : editedImage ? (
+                                    <div>
+                                        <img src={editedImage} alt="Edited" className="rounded-lg w-full" />
+                                        <a href={editedImage} download={`edited-image-${Date.now()}.png`} className="block text-center mt-4 bg-primary text-white font-semibold px-5 py-2 rounded-full hover:bg-opacity-90">
+                                            Download Edited Image
+                                        </a>
+                                    </div>
+                                ) : (
+                                    <div className="text-gray-500 dark:text-gray-400 p-4 text-center">Your edited image will appear here.</div>
+                                )}
+                            </div>
+                        </div>
+                    </div>
+                    <div className="flex items-center space-x-2">
+                        <input
+                            type="text"
+                            value={prompt}
+                            onChange={(e) => setPrompt(e.target.value)}
+                            placeholder="e.g., Make it a watercolor painting, add a small dog in the corner..."
+                            className="flex-grow p-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-primary bg-transparent dark:border-gray-600 dark:placeholder-gray-400"
+                        />
+                         <button onClick={handleGenerate} disabled={isLoading || !prompt} className="bg-secondary text-dark font-bold px-6 py-3 rounded-full shadow-lg hover:opacity-90 transition disabled:opacity-50">
+                            {isLoading ? 'Generating...' : '✨ Generate Edit'}
+                        </button>
+                    </div>
+                    {error && <p className="text-red-500 text-center mt-2">{error}</p>}
                 </div>
-             )}
+            )}
         </div>
     )
-}
+};
+
 
 export default AiMagicPage;

@@ -1,12 +1,12 @@
-import React, { useState, useEffect, useMemo, useCallback } from 'react';
+import React, { useState, useEffect, useMemo, useCallback, useRef } from 'react';
 import { MOCK_USERS, MOCK_POSTS, MOCK_ANNOUNCEMENTS, MOCK_ACHIEVEMENTS, MOCK_EVENTS, MOCK_CHAT_MESSAGES, MOCK_TASKS, ADMIN_USERNAME, ADMIN_PASSWORD, VIEWER_USER, PARIVARTAN_LOGO } from './constants';
 import { Role, User, Post, Announcement, Achievement, Event, Page, Notification, ChatMessage, Task, TaskStatus } from './types';
-import { HomeIcon, AnnouncementIcon, AchievementIcon, LogoutIcon, PlusIcon, TrashIcon, CalendarIcon, LoginIcon, EditIcon, SearchIcon, BellIcon, UserIcon, ChatIcon, SparklesIcon, SpeakerIcon, TaskIcon } from './components/Icons';
+import { HomeIcon, AnnouncementIcon, AchievementIcon, LogoutIcon, PlusIcon, TrashIcon, CalendarIcon, LoginIcon, EditIcon, SearchIcon, BellIcon, UserIcon, ChatIcon, SparklesIcon, SpeakerIcon, TaskIcon, VerifiedIcon, SunIcon, MoonIcon } from './components/Icons';
 import CreatePost from './components/CreatePost';
 import CreateEvent from './components/CreateEvent';
 import CreateAnnouncement from './components/CreateAnnouncement';
 import CreateAchievement from './components/CreateAchievement';
-import ProfilePage from './components/ProfilePage';
+import ProfilePage, { PostCard } from './components/ProfilePage';
 import ChatPage from './components/ChatPage';
 import AiMagicPage from './components/AiMagicPage';
 import TasksPage from './components/TasksPage';
@@ -143,8 +143,8 @@ const SideNav = ({ activePage, onNavigate, onLogout, user }: { activePage: Page;
     ]
 
     return (
-        <nav className="w-64 bg-white shadow-lg flex flex-col p-4 space-y-2">
-            <div className="p-4 flex items-center justify-center space-x-3 border-b pb-4">
+        <nav className="w-64 bg-white dark:bg-gray-800 shadow-lg flex flex-col p-4 space-y-2">
+            <div className="p-4 flex items-center justify-center space-x-3 border-b pb-4 dark:border-gray-700">
                  <img src={PARIVARTAN_LOGO} alt="Logo" className="w-16 h-auto" />
             </div>
             <div className="flex-grow pt-4">
@@ -152,7 +152,7 @@ const SideNav = ({ activePage, onNavigate, onLogout, user }: { activePage: Page;
                     <button
                         key={item.page}
                         onClick={() => onNavigate(item.page)}
-                        className={`w-full flex items-center space-x-3 px-4 py-3 rounded-lg text-left font-semibold transition-colors ${activePage === item.page ? 'bg-primary/10 text-primary' : 'text-gray-600 hover:bg-gray-100'}`}
+                        className={`w-full flex items-center space-x-3 px-4 py-3 rounded-lg text-left font-semibold transition-colors ${activePage === item.page ? 'bg-primary/10 text-primary' : 'text-gray-600 hover:bg-gray-100 dark:text-gray-300 dark:hover:bg-gray-700'}`}
                     >
                         <item.icon className="w-6 h-6" />
                         <span>{item.label}</span>
@@ -162,7 +162,7 @@ const SideNav = ({ activePage, onNavigate, onLogout, user }: { activePage: Page;
                      <button
                         key={item.page}
                         onClick={() => onNavigate(item.page)}
-                        className={`w-full flex items-center space-x-3 px-4 py-3 rounded-lg text-left font-semibold transition-colors ${activePage === item.page ? 'bg-primary/10 text-primary' : 'text-gray-600 hover:bg-gray-100'}`}
+                        className={`w-full flex items-center space-x-3 px-4 py-3 rounded-lg text-left font-semibold transition-colors ${activePage === item.page ? 'bg-primary/10 text-primary' : 'text-gray-600 hover:bg-gray-100 dark:text-gray-300 dark:hover:bg-gray-700'}`}
                     >
                         <item.icon className="w-6 h-6" />
                         <span>{item.label}</span>
@@ -171,7 +171,7 @@ const SideNav = ({ activePage, onNavigate, onLogout, user }: { activePage: Page;
             </div>
             <button
                 onClick={onLogout}
-                className="w-full flex items-center space-x-3 px-4 py-3 rounded-lg text-left font-semibold text-gray-600 hover:bg-gray-100 transition-colors"
+                className="w-full flex items-center space-x-3 px-4 py-3 rounded-lg text-left font-semibold text-gray-600 hover:bg-gray-100 dark:text-gray-300 dark:hover:bg-gray-700 transition-colors"
             >
                 {isViewer ? <LoginIcon /> : <LogoutIcon />}
                 <span>{isViewer ? 'Login' : 'Logout'}</span>
@@ -180,7 +180,7 @@ const SideNav = ({ activePage, onNavigate, onLogout, user }: { activePage: Page;
     );
 };
 
-const Header = ({ user, onNavigate, onSearch, unreadCount, notifications, onReadNotification }: { user: User, onNavigate: (page: Page) => void, onSearch: (query:string) => void, unreadCount: number, notifications: Notification[], onReadNotification: (id: string) => void }) => {
+const Header = ({ user, onNavigate, onSearch, unreadCount, notifications, onReadNotification, isDarkMode, toggleDarkMode }: { user: User, onNavigate: (page: Page) => void, onSearch: (query:string) => void, unreadCount: number, notifications: Notification[], onReadNotification: (id: string) => void, isDarkMode: boolean, toggleDarkMode: () => void }) => {
     const [searchQuery, setSearchQuery] = useState('');
     const [showNotifications, setShowNotifications] = useState(false);
     const notificationRef = React.useRef(null);
@@ -193,7 +193,7 @@ const Header = ({ user, onNavigate, onSearch, unreadCount, notifications, onRead
     }
     
     return (
-        <header className="bg-white/80 backdrop-blur-sm sticky top-0 z-20 p-4 border-b border-gray-200 flex justify-between items-center">
+        <header className="bg-white/80 dark:bg-gray-800/80 backdrop-blur-sm sticky top-0 z-20 p-4 border-b border-gray-200 dark:border-gray-700 flex justify-between items-center">
             {/* Search Bar */}
             <div className="flex-1 max-w-lg">
                 <form onSubmit={handleSearchSubmit} className="relative">
@@ -204,35 +204,38 @@ const Header = ({ user, onNavigate, onSearch, unreadCount, notifications, onRead
                         value={searchQuery}
                         onChange={(e) => setSearchQuery(e.target.value)}
                         onFocus={() => onSearch(searchQuery)}
-                        className="w-full bg-gray-100 rounded-full pl-10 pr-4 py-2 focus:ring-2 focus:ring-primary focus:outline-none"
+                        className="w-full bg-gray-100 dark:bg-gray-700 rounded-full pl-10 pr-4 py-2 focus:ring-2 focus:ring-primary focus:outline-none dark:placeholder-gray-400"
                     />
                 </form>
             </div>
 
             {/* User Info and Notifications */}
             <div className="flex items-center space-x-4">
+                <button onClick={toggleDarkMode} className="p-2 rounded-full hover:bg-gray-100 dark:hover:bg-gray-700 text-gray-600 dark:text-gray-300">
+                    {isDarkMode ? <SunIcon className="w-6 h-6" /> : <MoonIcon className="w-6 h-6" />}
+                </button>
                 <div className="relative" ref={notificationRef}>
-                    <button onClick={() => setShowNotifications(s => !s)} className="p-2 rounded-full hover:bg-gray-100 relative">
-                        <BellIcon className="w-6 h-6 text-gray-600"/>
+                    <button onClick={() => setShowNotifications(s => !s)} className="p-2 rounded-full hover:bg-gray-100 dark:hover:bg-gray-700 relative">
+                        <BellIcon className="w-6 h-6 text-gray-600 dark:text-gray-300"/>
                         {unreadCount > 0 && <span className="absolute top-0 right-0 block h-4 w-4 rounded-full bg-red-500 text-white text-xs flex items-center justify-center">{unreadCount}</span>}
                     </button>
                     {showNotifications && (
-                        <div className="absolute right-0 mt-2 w-80 bg-white rounded-lg shadow-xl border z-30">
-                            <div className="p-3 font-bold border-b">Notifications</div>
+                        <div className="absolute right-0 mt-2 w-80 bg-white dark:bg-gray-800 rounded-lg shadow-xl border dark:border-gray-700 z-30">
+                            <div className="p-3 font-bold border-b dark:border-gray-700">Notifications</div>
                             <div className="max-h-96 overflow-y-auto">
                                 {notifications.length > 0 ? notifications.map(n => (
-                                    <div key={n.id} onClick={() => onReadNotification(n.id)} className={`p-3 border-b hover:bg-gray-50 cursor-pointer ${!n.read ? 'bg-primary/5' : ''}`}>
+                                    <div key={n.id} onClick={() => onReadNotification(n.id)} className={`p-3 border-b dark:border-gray-700 hover:bg-gray-50 dark:hover:bg-gray-700 cursor-pointer ${!n.read ? 'bg-primary/5' : ''}`}>
                                         <p className="text-sm">{n.content}</p>
-                                        <p className="text-xs text-gray-500 mt-1">{n.createdAt.toLocaleString()}</p>
+                                        <p className="text-xs text-gray-500 dark:text-gray-400 mt-1">{n.createdAt.toLocaleString()}</p>
                                     </div>
-                                )) : <p className="p-4 text-gray-500 text-sm">No new notifications.</p>}
+                                )) : <p className="p-4 text-gray-500 dark:text-gray-400 text-sm">No new notifications.</p>}
                             </div>
                         </div>
                     )}
                 </div>
 
-                <button onClick={() => onNavigate(Page.PROFILE)} className="flex items-center space-x-3 hover:bg-gray-100 p-2 rounded-full">
-                    <span className="font-semibold text-dark hidden sm:block">{user.name}</span>
+                <button onClick={() => onNavigate(Page.PROFILE)} className="flex items-center space-x-3 hover:bg-gray-100 dark:hover:bg-gray-700 p-2 rounded-full">
+                    <span className="font-semibold text-dark dark:text-light hidden sm:block">{user.name}</span>
                     <img src={user.avatarUrl} alt={user.name} className="w-10 h-10 rounded-full object-cover"/>
                 </button>
             </div>
@@ -243,61 +246,7 @@ const Header = ({ user, onNavigate, onSearch, unreadCount, notifications, onRead
 
 // --- CONTENT COMPONENTS ---
 
-interface PostCardProps {
-    post: Post;
-    author?: User;
-    onDelete: (postId: string) => void;
-    canDelete: boolean;
-}
-
-const PostCard: React.FC<PostCardProps> = ({ post, author, onDelete, canDelete }) => {
-    const [isPlaying, setIsPlaying] = useState(false);
-    
-    const handlePlaySound = async (text: string) => {
-        if (isPlaying) return;
-        setIsPlaying(true);
-        try {
-            const base64Audio = await generateSpeech(text);
-            const audioBlob = new Blob([Uint8Array.from(atob(base64Audio), c => c.charCodeAt(0))], { type: 'audio/mpeg' });
-            const audioUrl = URL.createObjectURL(audioBlob);
-            const audio = new Audio(audioUrl);
-            audio.play();
-            audio.onended = () => setIsPlaying(false);
-        } catch (error) {
-            console.error("Failed to play audio", error);
-            setIsPlaying(false);
-        }
-    };
-    
-    return (
-    <div className="bg-white rounded-xl shadow-md hover:shadow-xl overflow-hidden transform hover:scale-[1.01] transition-all duration-300">
-        <div className="p-6">
-             <div className="flex items-start mb-4">
-                <img className="w-10 h-10 rounded-full mr-4 object-cover" src={author?.avatarUrl} alt={author?.name} />
-                <div className="flex-grow">
-                    <div className="font-bold text-dark text-lg">{author?.name}</div>
-                    <p className="text-gray-500 text-sm">{post.createdAt.toLocaleString()}</p>
-                </div>
-                <div className="flex items-center">
-                    <button onClick={() => handlePlaySound(post.content)} disabled={isPlaying} className="text-gray-500 hover:text-primary p-2 rounded-full hover:bg-gray-100 disabled:opacity-50">
-                        <SpeakerIcon className="w-5 h-5" />
-                    </button>
-                    {canDelete && (
-                        <button onClick={() => onDelete(post.id)} className="text-gray-500 hover:text-red-700 p-2 rounded-full hover:bg-red-100">
-                            <TrashIcon className="w-5 h-5" />
-                        </button>
-                    )}
-                </div>
-            </div>
-            <p className="text-gray-700">{post.content}</p>
-        </div>
-        {post.imageUrl && (
-            <img className="h-64 w-full object-cover" src={post.imageUrl} alt="Post image" />
-        )}
-    </div>
-)};
-
-const HomeFeed = ({ posts, users, currentUser, onAddPost, onDeletePost }: { posts: Post[]; users: User[]; currentUser: User; onAddPost: (post: Omit<Post, 'id' | 'createdAt'>) => void; onDeletePost: (postId: string) => void; }) => {
+const HomeFeed = ({ posts, users, currentUser, onAddPost, onDeletePost, highlightedItemId }: { posts: Post[]; users: User[]; currentUser: User; onAddPost: (post: Omit<Post, 'id' | 'createdAt'>) => void; onDeletePost: (postId: string) => void; highlightedItemId: string | null; }) => {
     const [isCreatingPost, setIsCreatingPost] = useState(false);
     const usersById = useMemo(() => new Map(users.map(u => [u.id, u])), [users]);
     const isViewer = currentUser.role === Role.GUEST;
@@ -305,7 +254,7 @@ const HomeFeed = ({ posts, users, currentUser, onAddPost, onDeletePost }: { post
     return (
         <div className="p-8">
             <div className="flex justify-between items-center mb-6">
-                <h1 className="text-3xl font-bold text-dark">Home Feed</h1>
+                <h1 className="text-3xl font-bold text-dark dark:text-light">Home Feed</h1>
                 {!isViewer && (
                     <button
                         onClick={() => setIsCreatingPost(true)}
@@ -324,6 +273,7 @@ const HomeFeed = ({ posts, users, currentUser, onAddPost, onDeletePost }: { post
                         author={usersById.get(post.authorId)}
                         onDelete={onDeletePost}
                         canDelete={currentUser.role === Role.ADMIN || currentUser.id === post.authorId}
+                        highlightedItemId={highlightedItemId}
                     />
                 ))}
             </div>
@@ -332,10 +282,18 @@ const HomeFeed = ({ posts, users, currentUser, onAddPost, onDeletePost }: { post
     );
 };
 
-const AnnouncementsPage = ({ announcements, currentUser, onSave, onDelete }: { announcements: Announcement[], currentUser: User, onSave: (announcement: Omit<Announcement, 'id' | 'createdAt'>) => void, onDelete: (announcementId: string) => void }) => {
+const AnnouncementsPage = ({ announcements, currentUser, onSave, onDelete, users, highlightedItemId }: { announcements: Announcement[], currentUser: User, onSave: (announcement: Omit<Announcement, 'id' | 'createdAt'>) => void, onDelete: (announcementId: string) => void, users: User[], highlightedItemId: string | null }) => {
     const [editingAnnouncement, setEditingAnnouncement] = useState<Announcement | 'new' | null>(null);
     const [isPlaying, setIsPlaying] = useState<string | null>(null);
     const canManage = currentUser.role === Role.ADMIN || currentUser.role === Role.MEMBER;
+    const usersById = useMemo(() => new Map(users.map(u => [u.id, u])), [users]);
+    const itemRefs = useRef<Record<string, HTMLDivElement | null>>({});
+
+    useEffect(() => {
+        if (highlightedItemId && itemRefs.current[highlightedItemId]) {
+            itemRefs.current[highlightedItemId]?.scrollIntoView({ behavior: 'smooth', block: 'center' });
+        }
+    }, [highlightedItemId]);
     
     const handlePlaySound = async (id: string, text: string) => {
         if (isPlaying) return;
@@ -356,7 +314,7 @@ const AnnouncementsPage = ({ announcements, currentUser, onSave, onDelete }: { a
     return (
     <div className="p-8">
         <div className="flex justify-between items-center mb-6">
-            <h1 className="text-3xl font-bold text-dark">Announcements</h1>
+            <h1 className="text-3xl font-bold text-dark dark:text-light">Announcements</h1>
             {canManage && (
                 <button
                     onClick={() => setEditingAnnouncement('new')}
@@ -368,42 +326,60 @@ const AnnouncementsPage = ({ announcements, currentUser, onSave, onDelete }: { a
             )}
         </div>
         <div className="space-y-6">
-            {announcements.map(ann => (
-                <div key={ann.id} className="bg-white rounded-xl shadow-md p-6">
-                    <div className="flex justify-between items-start">
-                        <div>
-                            <h2 className="text-2xl font-bold text-primary mb-2">{ann.title}</h2>
-                            <p className="text-sm text-gray-500 mb-4">{ann.createdAt.toLocaleDateString()}</p>
+            {announcements.map(ann => {
+                const author = usersById.get(ann.authorId);
+                return (
+                    <div 
+                        key={ann.id} 
+                        ref={el => itemRefs.current[ann.id] = el}
+                        className={`bg-white dark:bg-gray-800 rounded-xl shadow-md dark:border dark:border-gray-700 p-6 transition-all duration-500 ${ann.id === highlightedItemId ? 'ring-4 ring-secondary ring-offset-2 dark:ring-offset-gray-900' : ''}`}
+                    >
+                        <div className="flex justify-between items-start">
+                            <div>
+                                <h2 className="text-2xl font-bold text-primary mb-2">{ann.title}</h2>
+                                <div className="flex items-center space-x-2 mb-4">
+                                    <p className="text-sm text-gray-500 dark:text-gray-400">By {author?.name || 'Unknown'} on {ann.createdAt.toLocaleDateString()}</p>
+                                    {author?.role === Role.ADMIN && <VerifiedIcon className="w-4 h-4 text-blue-500" title="Admin"/>}
+                                </div>
+                            </div>
+                            <div className="flex space-x-2 flex-shrink-0 ml-4">
+                                <button onClick={() => handlePlaySound(ann.id, `${ann.title}. ${ann.content}`)} disabled={!!isPlaying} className="text-gray-500 dark:text-gray-400 hover:text-primary p-2 rounded-full hover:bg-gray-100 dark:hover:bg-gray-700 disabled:opacity-50">
+                                    <SpeakerIcon className="w-5 h-5"/>
+                                </button>
+                                {canManage && (
+                                    <>
+                                    <button onClick={() => setEditingAnnouncement(ann)} className="text-gray-500 dark:text-gray-400 hover:text-primary p-2 rounded-full hover:bg-gray-100 dark:hover:bg-gray-700 transition"><EditIcon className="w-5 h-5"/></button>
+                                    <button onClick={() => onDelete(ann.id)} className="text-gray-500 dark:text-gray-400 hover:text-red-500 p-2 rounded-full hover:bg-red-100 dark:hover:bg-gray-700 transition"><TrashIcon className="w-5 h-5" /></button>
+                                    </>
+                                )}
+                            </div>
                         </div>
-                        <div className="flex space-x-2 flex-shrink-0 ml-4">
-                            <button onClick={() => handlePlaySound(ann.id, `${ann.title}. ${ann.content}`)} disabled={!!isPlaying} className="text-gray-500 hover:text-primary p-2 rounded-full hover:bg-gray-100 disabled:opacity-50">
-                                <SpeakerIcon className="w-5 h-5"/>
-                            </button>
-                            {canManage && (
-                                <>
-                                <button onClick={() => setEditingAnnouncement(ann)} className="text-gray-500 hover:text-primary p-2 rounded-full hover:bg-gray-100 transition"><EditIcon className="w-5 h-5"/></button>
-                                <button onClick={() => onDelete(ann.id)} className="text-gray-500 hover:text-red-500 p-2 rounded-full hover:bg-red-100 transition"><TrashIcon className="w-5 h-5" /></button>
-                                </>
-                            )}
-                        </div>
+                        <p className="text-gray-700 dark:text-gray-300 whitespace-pre-wrap">{ann.content}</p>
                     </div>
-                    <p className="text-gray-700 whitespace-pre-wrap">{ann.content}</p>
-                </div>
-            ))}
+                )}
+            )}
         </div>
         {editingAnnouncement && <CreateAnnouncement onClose={() => setEditingAnnouncement(null)} onSave={onSave} announcementToEdit={editingAnnouncement === 'new' ? null : editingAnnouncement} />}
     </div>
     );
 };
 
-const AchievementsPage = ({ achievements, currentUser, onSave, onDelete }: { achievements: Achievement[], currentUser: User, onSave: (achievement: Omit<Achievement, 'id'>) => void, onDelete: (achievementId: string) => void }) => {
+const AchievementsPage = ({ achievements, currentUser, onSave, onDelete, users, highlightedItemId }: { achievements: Achievement[], currentUser: User, onSave: (achievement: Omit<Achievement, 'id'>) => void, onDelete: (achievementId: string) => void, users: User[], highlightedItemId: string | null }) => {
     const [editingAchievement, setEditingAchievement] = useState<Achievement | 'new' | null>(null);
     const canManage = currentUser.role === Role.ADMIN || currentUser.role === Role.MEMBER;
+    const usersById = useMemo(() => new Map(users.map(u => [u.id, u])), [users]);
+    const itemRefs = useRef<Record<string, HTMLDivElement | null>>({});
+
+    useEffect(() => {
+        if (highlightedItemId && itemRefs.current[highlightedItemId]) {
+            itemRefs.current[highlightedItemId]?.scrollIntoView({ behavior: 'smooth', block: 'center' });
+        }
+    }, [highlightedItemId]);
 
     return (
     <div className="p-8">
         <div className="flex justify-between items-center mb-6">
-            <h1 className="text-3xl font-bold text-dark">Our Achievements</h1>
+            <h1 className="text-3xl font-bold text-dark dark:text-light">Our Achievements</h1>
             {canManage && (
                  <button
                     onClick={() => setEditingAchievement('new')}
@@ -415,24 +391,35 @@ const AchievementsPage = ({ achievements, currentUser, onSave, onDelete }: { ach
             )}
         </div>
         <div className="grid md:grid-cols-2 gap-8">
-            {achievements.map(ach => (
-                <div key={ach.id} className="bg-white rounded-xl shadow-md overflow-hidden group">
-                    <div className="relative">
-                        <img className="h-56 w-full object-cover" src={ach.imageUrl} alt={ach.title} />
-                        {(canManage && (currentUser.id === ach.authorId || currentUser.role === Role.ADMIN)) && (
-                             <div className="absolute top-2 right-2 flex space-x-2 opacity-0 group-hover:opacity-100 transition-opacity">
-                                <button onClick={() => setEditingAchievement(ach)} className="bg-white/80 p-2 rounded-full text-dark hover:bg-white"><EditIcon className="w-5 h-5"/></button>
-                                <button onClick={() => onDelete(ach.id)} className="bg-white/80 p-2 rounded-full text-red-500 hover:bg-white"><TrashIcon className="w-5 h-5" /></button>
+            {achievements.map(ach => {
+                const author = usersById.get(ach.authorId);
+                return (
+                    <div 
+                        key={ach.id} 
+                        ref={el => itemRefs.current[ach.id] = el}
+                        className={`bg-white dark:bg-gray-800 rounded-xl shadow-md dark:border dark:border-gray-700 overflow-hidden group transition-all duration-500 ${ach.id === highlightedItemId ? 'ring-4 ring-secondary ring-offset-2 dark:ring-offset-gray-900' : ''}`}
+                    >
+                        <div className="relative">
+                            <img className="h-56 w-full object-cover" src={ach.imageUrl} alt={ach.title} />
+                            {(canManage && (currentUser.id === ach.authorId || currentUser.role === Role.ADMIN)) && (
+                                 <div className="absolute top-2 right-2 flex space-x-2 opacity-0 group-hover:opacity-100 transition-opacity">
+                                    <button onClick={() => setEditingAchievement(ach)} className="bg-white/80 p-2 rounded-full text-dark hover:bg-white"><EditIcon className="w-5 h-5"/></button>
+                                    <button onClick={() => onDelete(ach.id)} className="bg-white/80 p-2 rounded-full text-red-500 hover:bg-white"><TrashIcon className="w-5 h-5" /></button>
+                                </div>
+                            )}
+                        </div>
+                        <div className="p-6">
+                            <p className="text-sm text-secondary font-bold mb-1">{ach.date.toLocaleDateString()}</p>
+                            <h2 className="text-xl font-bold text-dark dark:text-light mb-2">{ach.title}</h2>
+                            <p className="text-gray-600 dark:text-gray-300 mb-3">{ach.description}</p>
+                            <div className="flex items-center space-x-2 text-sm text-gray-500 dark:text-gray-400">
+                                <span>By {author?.name}</span>
+                                {author?.role === Role.ADMIN && <VerifiedIcon className="w-4 h-4 text-blue-500" title="Admin"/>}
                             </div>
-                        )}
+                        </div>
                     </div>
-                    <div className="p-6">
-                        <p className="text-sm text-secondary font-bold mb-1">{ach.date.toLocaleDateString()}</p>
-                        <h2 className="text-xl font-bold text-dark mb-2">{ach.title}</h2>
-                        <p className="text-gray-600">{ach.description}</p>
-                    </div>
-                </div>
-            ))}
+                )}
+            )}
         </div>
         {editingAchievement && <CreateAchievement onClose={() => setEditingAchievement(null)} onSave={onSave} achievementToEdit={editingAchievement === 'new' ? null : editingAchievement} />}
     </div>
@@ -440,16 +427,30 @@ const AchievementsPage = ({ achievements, currentUser, onSave, onDelete }: { ach
 };
 interface EventCardProps {
   event: Event;
+  author?: User;
   canManage: boolean;
   canEditDelete: boolean;
   onDelete: (eventId: string) => void;
   onEdit: (event: Event) => void;
+  onRegisterInterest: (event: Event) => void;
+  highlightedItemId: string | null;
 }
 
-const EventCard: React.FC<EventCardProps> = ({ event, canManage, canEditDelete, onDelete, onEdit }) => {
+const EventCard: React.FC<EventCardProps> = ({ event, author, canManage, canEditDelete, onDelete, onEdit, onRegisterInterest, highlightedItemId }) => {
     const isPast = new Date(event.date) < new Date();
+    const cardRef = useRef<HTMLDivElement>(null);
+
+    useEffect(() => {
+        if (event.id === highlightedItemId) {
+            cardRef.current?.scrollIntoView({ behavior: 'smooth', block: 'center' });
+        }
+    }, [highlightedItemId, event.id]);
+    
     return (
-        <div className="bg-white rounded-xl shadow-md overflow-hidden flex flex-col group">
+        <div 
+            ref={cardRef}
+            className={`bg-white dark:bg-gray-800 rounded-xl shadow-md dark:border dark:border-gray-700 overflow-hidden flex flex-col group transition-all duration-500 ${event.id === highlightedItemId ? 'ring-4 ring-secondary ring-offset-2 dark:ring-offset-gray-900' : ''}`}
+        >
              {event.imageUrl && 
                 <div className="relative">
                     <img className="h-48 w-full object-cover" src={event.imageUrl} alt={event.title} />
@@ -463,22 +464,33 @@ const EventCard: React.FC<EventCardProps> = ({ event, canManage, canEditDelete, 
             }
             <div className="p-6 flex flex-col flex-grow">
                 <p className="text-sm text-secondary font-bold mb-1">{event.date.toLocaleString()}</p>
-                <h3 className="text-xl font-bold text-dark mb-2">{event.title}</h3>
-                <p className="text-gray-600 flex-grow">{event.description}</p>
-                <div className="mt-4 flex items-center justify-between">
+                <h3 className="text-xl font-bold text-dark dark:text-light mb-2">{event.title}</h3>
+                <p className="text-gray-600 dark:text-gray-300 flex-grow mb-3">{event.description}</p>
+                <div className="flex items-center space-x-2 text-sm text-gray-500 dark:text-gray-400 mb-3">
+                    <span>By {author?.name}</span>
+                    {author?.role === Role.ADMIN && <VerifiedIcon className="w-4 h-4 text-blue-500" title="Admin"/>}
+                </div>
+                <div className="mt-auto flex items-center justify-between gap-2">
                     {!isPast ? (
-                        <a href={event.registrationLink} target="_blank" rel="noopener noreferrer" className="bg-secondary text-dark font-bold px-4 py-2 rounded-full shadow-md hover:opacity-90 transition">
+                        <>
+                        <a href={event.registrationLink} target="_blank" rel="noopener noreferrer" className="bg-secondary text-dark font-bold px-4 py-2 rounded-full shadow-md hover:opacity-90 transition text-sm text-center">
                             Register Now
                         </a>
+                        {canManage && (
+                            <button onClick={() => onRegisterInterest(event)} className="bg-primary/10 text-primary font-bold px-4 py-2 rounded-full hover:bg-primary/20 transition text-sm">
+                                Volunteer
+                            </button>
+                        )}
+                        </>
                     ) : (
-                        <span className="bg-gray-200 text-gray-500 font-bold px-4 py-2 rounded-full cursor-not-allowed">
+                        <span className="bg-gray-200 dark:bg-gray-700 text-gray-500 dark:text-gray-400 font-bold px-4 py-2 rounded-full cursor-not-allowed text-sm">
                             Event Ended
                         </span>
                     )}
                     {canEditDelete && !event.imageUrl && 
                         <div className="flex space-x-2">
-                           <button onClick={() => onEdit(event)} className="text-gray-500 hover:text-primary p-2 rounded-full hover:bg-gray-100 transition"><EditIcon className="w-5 h-5"/></button>
-                           <button onClick={() => onDelete(event.id)} className="text-gray-500 hover:text-red-500 p-2 rounded-full hover:bg-red-100 transition"><TrashIcon className="w-5 h-5" /></button>
+                           <button onClick={() => onEdit(event)} className="text-gray-500 dark:text-gray-400 hover:text-primary p-2 rounded-full hover:bg-gray-100 dark:hover:bg-gray-700 transition"><EditIcon className="w-5 h-5"/></button>
+                           <button onClick={() => onDelete(event.id)} className="text-gray-500 dark:text-gray-400 hover:text-red-500 p-2 rounded-full hover:bg-red-100 dark:hover:bg-gray-700 transition"><TrashIcon className="w-5 h-5" /></button>
                         </div>
                     }
                 </div>
@@ -487,8 +499,9 @@ const EventCard: React.FC<EventCardProps> = ({ event, canManage, canEditDelete, 
     );
 };
 
-const EventsPage = ({ events, currentUser, onSaveEvent, onDeleteEvent }: { events: Event[], currentUser: User, onSaveEvent: (event: Omit<Event, 'id'>) => void, onDeleteEvent: (eventId: string) => void }) => {
+const EventsPage = ({ events, currentUser, onSaveEvent, onDeleteEvent, users, onRegisterInterest, highlightedItemId }: { events: Event[], currentUser: User, onSaveEvent: (event: Omit<Event, 'id'>) => void, onDeleteEvent: (eventId: string) => void, users: User[], onRegisterInterest: (event: Event) => void, highlightedItemId: string | null }) => {
     const [editingEvent, setEditingEvent] = useState<Event | 'new' | null>(null);
+    const usersById = useMemo(() => new Map(users.map(u => [u.id, u])), [users]);
     
     const now = new Date();
     const upcomingEvents = events.filter(e => new Date(e.date) >= now).sort((a,b) => new Date(a.date).getTime() - new Date(b.date).getTime());
@@ -498,7 +511,7 @@ const EventsPage = ({ events, currentUser, onSaveEvent, onDeleteEvent }: { event
     return (
         <div className="p-8">
             <div className="flex justify-between items-center mb-8">
-                <h1 className="text-3xl font-bold text-dark">Events</h1>
+                <h1 className="text-3xl font-bold text-dark dark:text-light">Events</h1>
                 {canManage && (
                     <button
                         onClick={() => setEditingEvent('new')}
@@ -513,23 +526,23 @@ const EventsPage = ({ events, currentUser, onSaveEvent, onDeleteEvent }: { event
             <h2 className="text-2xl font-semibold text-primary mb-4 border-b-2 border-primary/20 pb-2">Upcoming Events</h2>
             {upcomingEvents.length > 0 ? (
                 <div className="grid md:grid-cols-2 lg:grid-cols-3 gap-8">
-                    {upcomingEvents.map(event => <EventCard key={event.id} event={event} canManage={canManage} canEditDelete={currentUser.id === event.authorId || currentUser.role === Role.ADMIN} onDelete={onDeleteEvent} onEdit={setEditingEvent} />)}
+                    {upcomingEvents.map(event => <EventCard key={event.id} event={event} author={usersById.get(event.authorId)} canManage={canManage} canEditDelete={currentUser.id === event.authorId || currentUser.role === Role.ADMIN} onDelete={onDeleteEvent} onEdit={setEditingEvent} onRegisterInterest={onRegisterInterest} highlightedItemId={highlightedItemId} />)}
                 </div>
-            ) : <p className="text-gray-500">No upcoming events scheduled. Check back soon!</p>}
+            ) : <p className="text-gray-500 dark:text-gray-400">No upcoming events scheduled. Check back soon!</p>}
 
             <h2 className="text-2xl font-semibold text-primary mt-12 mb-4 border-b-2 border-primary/20 pb-2">Past Events</h2>
             {pastEvents.length > 0 ? (
                 <div className="grid md:grid-cols-2 lg:grid-cols-3 gap-8">
-                    {pastEvents.map(event => <EventCard key={event.id} event={event} canManage={canManage} canEditDelete={currentUser.id === event.authorId || currentUser.role === Role.ADMIN} onDelete={onDeleteEvent} onEdit={setEditingEvent} />)}
+                    {pastEvents.map(event => <EventCard key={event.id} event={event} author={usersById.get(event.authorId)} canManage={canManage} canEditDelete={currentUser.id === event.authorId || currentUser.role === Role.ADMIN} onDelete={onDeleteEvent} onEdit={setEditingEvent} onRegisterInterest={onRegisterInterest} highlightedItemId={highlightedItemId} />)}
                 </div>
-            ) : <p className="text-gray-500">No past events to show.</p>}
+            ) : <p className="text-gray-500 dark:text-gray-400">No past events to show.</p>}
 
             {editingEvent && <CreateEvent onClose={() => setEditingEvent(null)} onSaveEvent={onSaveEvent} eventToEdit={editingEvent === 'new' ? null : editingEvent} />}
         </div>
     );
 };
 
-const SearchResults = ({ query, posts, announcements, achievements, events, users, onClose, onNavigate }: { query: string; posts: Post[]; announcements: Announcement[]; achievements: Achievement[]; events: Event[]; users: User[]; onClose: () => void; onNavigate: (page: Page) => void; }) => {
+const SearchResults = ({ query, posts, announcements, achievements, events, users, onClose, onNavigate }: { query: string; posts: Post[]; announcements: Announcement[]; achievements: Achievement[]; events: Event[]; users: User[]; onClose: () => void; onNavigate: (page: Page, itemId?: string) => void; }) => {
     const usersById = useMemo(() => new Map(users.map(u => [u.id, u])), [users]);
 
     const lowerCaseQuery = query.toLowerCase();
@@ -541,42 +554,107 @@ const SearchResults = ({ query, posts, announcements, achievements, events, user
     
     const hasResults = filteredPosts.length || filteredAnnouncements.length || filteredAchievements.length || filteredEvents.length;
 
+    const resultItemClass = "p-3 bg-gray-50 dark:bg-gray-700 rounded-lg mb-2 text-blue-600 hover:text-blue-800 hover:bg-blue-50 dark:hover:bg-blue-900/20 cursor-pointer transition-colors";
+
     return (
         <div className="fixed inset-0 bg-black bg-opacity-60 flex justify-center z-40 p-4" onClick={onClose}>
-            <div className="bg-white rounded-2xl shadow-2xl w-full max-w-3xl mt-20 h-[70vh] flex flex-col" onClick={e => e.stopPropagation()}>
-                <div className="p-4 border-b">
-                    <h2 className="text-xl font-bold text-dark">Search Results for "{query}"</h2>
+            <div className="bg-white dark:bg-gray-800 rounded-2xl shadow-2xl w-full max-w-3xl mt-20 h-[70vh] flex flex-col" onClick={e => e.stopPropagation()}>
+                <div className="p-4 border-b dark:border-gray-700">
+                    <h2 className="text-xl font-bold text-dark dark:text-light">Search Results for "{query}"</h2>
                 </div>
                 <div className="flex-1 overflow-y-auto p-6 space-y-6">
-                    {!hasResults && <p className="text-gray-500">No results found.</p>}
+                    {!hasResults && <p className="text-gray-500 dark:text-gray-400">No results found.</p>}
                     
                     {filteredPosts.length > 0 && <div>
                         <h3 className="font-bold text-lg text-primary mb-2">Posts</h3>
-                        {filteredPosts.map(p => <div key={p.id} className="p-3 bg-gray-50 rounded-lg mb-2"><strong>{usersById.get(p.authorId)?.name}:</strong> {p.content.substring(0,100)}...</div>)}
+                        {filteredPosts.map(p => {
+                            const author = usersById.get(p.authorId);
+                            return (
+                                <div key={p.id} onClick={() => { onNavigate(Page.HOME, p.id); onClose();}} className={resultItemClass}>
+                                    <div className="flex items-center space-x-2">
+                                        <strong className="flex-shrink-0 text-gray-800 dark:text-gray-200">{author?.name}:</strong>
+                                        {author?.role === Role.ADMIN && <VerifiedIcon className="w-4 h-4 text-blue-500 flex-shrink-0" title="Admin"/>}
+                                        <p className="truncate text-gray-600 dark:text-gray-300">{p.content}</p>
+                                    </div>
+                                </div>
+                            );
+                        })}
                     </div>}
 
                      {filteredAnnouncements.length > 0 && <div>
                         <h3 className="font-bold text-lg text-primary mb-2">Announcements</h3>
-                        {filteredAnnouncements.map(a => <div key={a.id} className="p-3 bg-gray-50 rounded-lg mb-2" onClick={() => { onNavigate(Page.ANNOUNCEMENTS); onClose();}} ><strong>{a.title}</strong></div>)}
+                        {filteredAnnouncements.map(a => {
+                            const author = usersById.get(a.authorId);
+                            return (
+                                <div key={a.id} className={`${resultItemClass} flex items-center gap-2`} onClick={() => { onNavigate(Page.ANNOUNCEMENTS, a.id); onClose();}}>
+                                    <strong className="text-gray-800 dark:text-gray-200">{a.title}</strong>
+                                    {author?.role === Role.ADMIN && <VerifiedIcon className="w-4 h-4 text-blue-500 flex-shrink-0" title="Admin"/>}
+                                </div>
+                            );
+                        })}
                     </div>}
 
                     {filteredAchievements.length > 0 && <div>
                         <h3 className="font-bold text-lg text-primary mb-2">Achievements</h3>
-                        {filteredAchievements.map(a => <div key={a.id} className="p-3 bg-gray-50 rounded-lg mb-2 flex items-center gap-3" onClick={() => { onNavigate(Page.ACHIEVEMENTS); onClose();}}>
-                            <img src={a.imageUrl} className="w-12 h-12 object-cover rounded"/>
-                            <strong>{a.title}</strong>
-                        </div>)}
+                        {filteredAchievements.map(a => {
+                            const author = usersById.get(a.authorId);
+                            return (
+                                <div key={a.id} className={`${resultItemClass} flex items-center gap-3`} onClick={() => { onNavigate(Page.ACHIEVEMENTS, a.id); onClose();}}>
+                                    <img src={a.imageUrl} className="w-12 h-12 object-cover rounded flex-shrink-0"/>
+                                    <strong className="text-gray-800 dark:text-gray-200">{a.title}</strong>
+                                    {author?.role === Role.ADMIN && <VerifiedIcon className="w-4 h-4 text-blue-500 flex-shrink-0 ml-auto" title="Admin"/>}
+                                </div>
+                            );
+                        })}
                     </div>}
 
                      {filteredEvents.length > 0 && <div>
                         <h3 className="font-bold text-lg text-primary mb-2">Events</h3>
-                        {filteredEvents.map(e => <div key={e.id} className="p-3 bg-gray-50 rounded-lg mb-2" onClick={() => { onNavigate(Page.EVENTS); onClose();}}><strong>{e.title}</strong></div>)}
+                        {filteredEvents.map(e => {
+                            const author = usersById.get(e.authorId);
+                            return (
+                                <div key={e.id} className={`${resultItemClass} flex items-center gap-2`} onClick={() => { onNavigate(Page.EVENTS, e.id); onClose();}}>
+                                    <strong className="text-gray-800 dark:text-gray-200">{e.title}</strong>
+                                    {author?.role === Role.ADMIN && <VerifiedIcon className="w-4 h-4 text-blue-500 flex-shrink-0" title="Admin"/>}
+                                </div>
+                            );
+                        })}
                     </div>}
                 </div>
             </div>
         </div>
     )
 }
+
+const RegisterInterestModal = ({ event, onClose }: { event: Event; onClose: () => void; }) => {
+    const handleSubmit = (e: React.FormEvent) => {
+        e.preventDefault();
+        // In a real app, this would submit to a backend.
+        console.log(`Interest registered for event: ${event.title}`);
+        alert(`Thank you for your interest in volunteering for "${event.title}"! We will get in touch soon.`);
+        onClose();
+    };
+
+    return (
+        <div className="fixed inset-0 bg-black bg-opacity-60 flex items-center justify-center z-50 p-4" onClick={onClose}>
+            <div className="bg-white dark:bg-gray-800 rounded-2xl shadow-2xl w-full max-w-lg transform transition-all" onClick={e => e.stopPropagation()}>
+                <div className="p-6 border-b dark:border-gray-700">
+                    <h2 className="text-2xl font-bold text-dark dark:text-light">Register to Volunteer</h2>
+                    <p className="text-gray-600 dark:text-gray-400 mt-1">Event: {event.title}</p>
+                </div>
+                <form onSubmit={handleSubmit}>
+                    <div className="p-6">
+                        <p className="text-gray-700 dark:text-gray-300">By clicking "Confirm", you are expressing your interest in volunteering for this event. A team member will contact you with more details. Thank you for your support!</p>
+                    </div>
+                    <div className="p-6 bg-gray-50 dark:bg-gray-800/50 rounded-b-2xl flex justify-end space-x-3">
+                        <button type="button" onClick={onClose} className="px-6 py-2 bg-gray-200 dark:bg-gray-600 text-gray-800 dark:text-light rounded-lg font-semibold hover:bg-gray-300 dark:hover:bg-gray-500 transition">Cancel</button>
+                        <button type="submit" className="px-6 py-2 bg-secondary text-dark rounded-lg font-bold hover:opacity-90 transition">Confirm Interest</button>
+                    </div>
+                </form>
+            </div>
+        </div>
+    );
+};
 
 
 // --- MAIN APP COMPONENT ---
@@ -601,6 +679,22 @@ export default function App() {
     const [searchQuery, setSearchQuery] = useState('');
     const [isSearchOpen, setIsSearchOpen] = useState(false);
     const [isLoading, setIsLoading] = useState(true);
+    const [isDarkMode, setIsDarkMode] = useState(() => localStorage.getItem('darkMode') === 'true');
+    const [registeringInterestForEvent, setRegisteringInterestForEvent] = useState<Event | null>(null);
+    const [highlightedItemId, setHighlightedItemId] = useState<string | null>(null);
+
+    useEffect(() => {
+        const root = window.document.documentElement;
+        if (isDarkMode) {
+            root.classList.add('dark');
+            localStorage.setItem('darkMode', 'true');
+        } else {
+            root.classList.remove('dark');
+            localStorage.setItem('darkMode', 'false');
+        }
+    }, [isDarkMode]);
+
+    const toggleDarkMode = () => setIsDarkMode(!isDarkMode);
 
     useEffect(() => {
         const timer = setTimeout(() => setIsLoading(false), 1500);
@@ -609,6 +703,16 @@ export default function App() {
 
     const unreadNotificationCount = useMemo(() => notifications.filter(n => !n.read).length, [notifications]);
 
+    // --- NAVIGATION HANDLER ---
+    const handleNavigate = (page: Page, itemId?: string) => {
+        setActivePage(page);
+        if (itemId) {
+            setHighlightedItemId(itemId);
+            // Clear highlight after a delay for a "flash" effect
+            setTimeout(() => setHighlightedItemId(null), 3000);
+        }
+    };
+    
     // --- NOTIFICATION HANDLER ---
     const createNotification = useCallback((content: string, linkTo?: { page: Page; id: string }) => {
         const newNotification: Notification = {
@@ -629,7 +733,7 @@ export default function App() {
     const handleReadNotification = (id: string) => {
         const notification = notifications.find(n => n.id === id);
         if (notification?.linkTo) {
-            setActivePage(notification.linkTo.page);
+            handleNavigate(notification.linkTo.page, notification.linkTo.id);
         }
         setNotifications(prev => prev.map(n => n.id === id ? { ...n, read: true } : n));
     };
@@ -670,6 +774,12 @@ export default function App() {
         const user = users.find(u => u.username.toLowerCase() === username.toLowerCase());
         
         if (user && user.password === pass) {
+            if (loginMode === 'admin' && user.role !== Role.ADMIN) {
+                throw new Error("This is not an admin account. Please use Member Login.");
+            }
+            if (loginMode === 'member' && user.role === Role.ADMIN) {
+                throw new Error("This is an admin account. Please use Admin Login.");
+            }
             setCurrentUser(user);
             setActivePage(Page.HOME);
         } else {
@@ -796,12 +906,43 @@ export default function App() {
         };
         setUsers(prev => [...prev, newUser]);
     };
+    
+    const handleUpdateUser = (updatedUserData: User) => {
+        setUsers(prev => prev.map(u => (u.id === updatedUserData.id ? updatedUserData : u)));
+        if (currentUser?.id === updatedUserData.id) {
+            setCurrentUser(updatedUserData);
+        }
+        if (currentUser?.role === Role.ADMIN && currentUser.id !== updatedUserData.id) {
+            createNotification(`Profile for ${updatedUserData.name} has been updated.`);
+        }
+    };
+
+    const handleUpdateUserRole = (userId: string, newRole: Role) => {
+        if (currentUser?.role !== Role.ADMIN) {
+            alert("Only admins can change roles.");
+            return;
+        }
+        if (newRole === Role.ADMIN) {
+            if (window.confirm('Are you sure you want to promote this member to Admin? This action cannot be undone.')) {
+                setUsers(prev => prev.map(u => (u.id === userId ? { ...u, role: newRole } : u)));
+            }
+        }
+    };
 
     const handleDeleteUser = (userId: string) => {
-        if (window.confirm('Are you sure you want to remove this member? This will remove all their posts and tasks.')) {
-            setUsers(prev => prev.filter(u => u.id !== userId));
+        if (window.confirm('Are you sure you want to remove this member? This will remove all their posts, tasks, and other contributions permanently.')) {
+            // Remove all content created by the user
             setPosts(prev => prev.filter(p => p.authorId !== userId));
+            setAnnouncements(prev => prev.filter(a => a.authorId !== userId));
+            setAchievements(prev => prev.filter(a => a.authorId !== userId));
+            setEvents(prev => prev.filter(e => e.authorId !== userId));
+            setChatMessages(prev => prev.filter(m => m.authorId !== userId));
+            
+            // Remove tasks created by or assigned to the user
             setTasks(prev => prev.filter(t => t.creatorId !== userId && t.assigneeId !== userId));
+            
+            // Finally, remove the user
+            setUsers(prev => prev.filter(u => u.id !== userId));
         }
     };
     
@@ -831,43 +972,46 @@ export default function App() {
     const renderPage = () => {
         switch (activePage) {
             case Page.HOME:
-                return <HomeFeed posts={posts} users={users} currentUser={currentUser} onAddPost={handleAddPost} onDeletePost={handleDeletePost} />;
+                return <HomeFeed posts={posts} users={users} currentUser={currentUser} onAddPost={handleAddPost} onDeletePost={handleDeletePost} highlightedItemId={highlightedItemId} />;
             case Page.ANNOUNCEMENTS:
-                return <AnnouncementsPage announcements={announcements} currentUser={currentUser} onSave={handleSaveAnnouncement} onDelete={handleDeleteAnnouncement}/>;
+                return <AnnouncementsPage announcements={announcements} currentUser={currentUser} onSave={handleSaveAnnouncement} onDelete={handleDeleteAnnouncement} users={users} highlightedItemId={highlightedItemId} />;
             case Page.ACHIEVEMENTS:
-                return <AchievementsPage achievements={achievements} currentUser={currentUser} onSave={handleSaveAchievement} onDelete={handleDeleteAchievement} />;
+                return <AchievementsPage achievements={achievements} currentUser={currentUser} onSave={handleSaveAchievement} onDelete={handleDeleteAchievement} users={users} highlightedItemId={highlightedItemId} />;
             case Page.EVENTS:
-                return <EventsPage events={events} currentUser={currentUser} onSaveEvent={handleSaveEvent} onDeleteEvent={handleDeleteEvent} />;
+                return <EventsPage events={events} currentUser={currentUser} onSaveEvent={handleSaveEvent} onDeleteEvent={handleDeleteEvent} users={users} onRegisterInterest={setRegisteringInterestForEvent} highlightedItemId={highlightedItemId} />;
             case Page.TASKS:
                 return <TasksPage tasks={tasks} users={users} currentUser={currentUser} onSaveTask={handleSaveTask} onDeleteTask={handleDeleteTask} />;
             case Page.PROFILE:
-                return <ProfilePage currentUser={currentUser} users={users} posts={posts} onAddUser={handleAddUser} onDeleteUser={handleDeleteUser} onDeletePost={handleDeletePost} />;
+                return <ProfilePage currentUser={currentUser} users={users} posts={posts} onAddUser={handleAddUser} onDeleteUser={handleDeleteUser} onUpdateUserRole={handleUpdateUserRole} onDeletePost={handleDeletePost} onUpdateUser={handleUpdateUser} highlightedItemId={highlightedItemId} />;
             case Page.CHAT:
                  return <ChatPage currentUser={currentUser} users={users} messages={chatMessages} onSendMessage={handleSendMessage} />;
             case Page.AI_MAGIC:
                 return <AiMagicPage />;
             default:
-                return <HomeFeed posts={posts} users={users} currentUser={currentUser} onAddPost={handleAddPost} onDeletePost={handleDeletePost} />;
+                return <HomeFeed posts={posts} users={users} currentUser={currentUser} onAddPost={handleAddPost} onDeletePost={handleDeletePost} highlightedItemId={highlightedItemId} />;
         }
     };
 
     return (
         <div className="flex min-h-screen">
-            <SideNav activePage={activePage} onNavigate={setActivePage} onLogout={handleLogout} user={currentUser} />
-            <main className="flex-1 bg-light">
+            <SideNav activePage={activePage} onNavigate={handleNavigate} onLogout={handleLogout} user={currentUser} />
+            <main className="flex-1 bg-light dark:bg-gray-900">
                 <Header 
                     user={currentUser} 
-                    onNavigate={setActivePage}
+                    onNavigate={handleNavigate}
                     onSearch={handleSearch}
                     unreadCount={unreadNotificationCount}
                     notifications={notifications}
                     onReadNotification={handleReadNotification}
+                    isDarkMode={isDarkMode}
+                    toggleDarkMode={toggleDarkMode}
                 />
-                <div className="overflow-y-auto" style={{ height: 'calc(100vh - 65px)' }}>
+                <div className="overflow-y-auto" style={{ height: 'calc(100vh - 73px)' }}>
                   {isLoading ? <LoadingSpinner /> : renderPage()}
                 </div>
             </main>
-            {isSearchOpen && <SearchResults query={searchQuery} posts={posts} announcements={announcements} achievements={achievements} events={events} users={users} onClose={() => setIsSearchOpen(false)} onNavigate={setActivePage} />}
+            {isSearchOpen && <SearchResults query={searchQuery} posts={posts} announcements={announcements} achievements={achievements} events={events} users={users} onClose={() => setIsSearchOpen(false)} onNavigate={handleNavigate} />}
+            {registeringInterestForEvent && <RegisterInterestModal event={registeringInterestForEvent} onClose={() => setRegisteringInterestForEvent(null)} />}
         </div>
     );
 }

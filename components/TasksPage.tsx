@@ -7,32 +7,33 @@ interface TaskCardProps {
     task: Task;
     assignee?: User;
     canManage: boolean;
+    canDrag: boolean;
     onEdit: () => void;
     onDelete: () => void;
     onDragStart: (e: React.DragEvent<HTMLDivElement>, taskId: string) => void;
 }
 
-const TaskCard: React.FC<TaskCardProps> = ({ task, assignee, canManage, onEdit, onDelete, onDragStart }) => {
+const TaskCard: React.FC<TaskCardProps> = ({ task, assignee, canManage, canDrag, onEdit, onDelete, onDragStart }) => {
     const isOverdue = !task.dueDate ? false : new Date(task.dueDate) < new Date() && task.status !== TaskStatus.DONE;
     return (
         <div 
-            draggable={canManage}
+            draggable={canDrag}
             onDragStart={(e) => onDragStart(e, task.id)}
-            className={`bg-white p-4 rounded-lg shadow-sm border border-gray-200 ${canManage ? 'cursor-grab active:cursor-grabbing' : 'cursor-default'}`}
+            className={`bg-white dark:bg-gray-800 p-4 rounded-lg shadow-sm border border-gray-200 dark:border-gray-700 ${canDrag ? 'cursor-grab active:cursor-grabbing' : 'cursor-default'}`}
         >
-            <h4 className="font-bold text-dark mb-2">{task.title}</h4>
-            <p className="text-sm text-gray-600 mb-3">{task.description}</p>
+            <h4 className="font-bold text-dark dark:text-light mb-2">{task.title}</h4>
+            <p className="text-sm text-gray-600 dark:text-gray-400 mb-3">{task.description}</p>
             <div className="flex justify-between items-center">
                 <div className="flex items-center space-x-2">
                     {assignee && <img src={assignee.avatarUrl} alt={assignee.name} className="w-6 h-6 rounded-full" title={`Assigned to ${assignee.name}`} />}
-                    <span className={`text-xs font-semibold px-2 py-1 rounded-full ${isOverdue ? 'bg-red-100 text-red-700' : 'bg-gray-100 text-gray-600'}`}>
+                    <span className={`text-xs font-semibold px-2 py-1 rounded-full ${isOverdue ? 'bg-red-100 text-red-700' : 'bg-gray-100 text-gray-600 dark:bg-gray-700 dark:text-gray-300'}`}>
                         Due: {new Date(task.dueDate).toLocaleDateString()}
                     </span>
                 </div>
                 {canManage && (
                     <div className="flex items-center space-x-1">
-                        <button onClick={onEdit} className="p-1 text-gray-500 hover:text-primary rounded-full hover:bg-gray-100"><EditIcon className="w-4 h-4" /></button>
-                        <button onClick={onDelete} className="p-1 text-gray-500 hover:text-red-500 rounded-full hover:bg-red-100"><TrashIcon className="w-4 h-4" /></button>
+                        <button onClick={onEdit} className="p-1 text-gray-500 hover:text-primary dark:text-gray-400 rounded-full hover:bg-gray-100 dark:hover:bg-gray-700"><EditIcon className="w-4 h-4" /></button>
+                        <button onClick={onDelete} className="p-1 text-gray-500 hover:text-red-500 dark:text-gray-400 rounded-full hover:bg-red-100 dark:hover:bg-gray-700"><TrashIcon className="w-4 h-4" /></button>
                     </div>
                 )}
             </div>
@@ -81,10 +82,10 @@ const TaskColumn: React.FC<TaskColumnProps> = ({ status, title, tasks, usersById
             onDrop={handleDrop}
             onDragOver={handleDragOver}
             onDragLeave={handleDragLeave}
-            className={`flex-1 bg-gray-100 p-4 rounded-xl transition-colors ${isOver ? 'bg-primary/10' : ''}`}
+            className={`flex-1 bg-gray-100 dark:bg-gray-800/50 p-4 rounded-xl transition-colors ${isOver ? 'bg-primary/10' : ''}`}
         >
             <div className="flex justify-between items-center mb-4">
-                <h3 className="font-bold text-lg text-dark">{title}</h3>
+                <h3 className="font-bold text-lg text-dark dark:text-light">{title}</h3>
                 <span className={`px-3 py-1 text-sm font-semibold rounded-full ${statusColors[status]}`}>{tasks.length}</span>
             </div>
             <div className="space-y-4 h-full">
@@ -96,6 +97,7 @@ const TaskColumn: React.FC<TaskColumnProps> = ({ status, title, tasks, usersById
                         onEdit={() => onEditTask(task)}
                         onDelete={() => onDeleteTask(task.id)}
                         canManage={currentUser.role === Role.ADMIN}
+                        canDrag={currentUser.role !== Role.GUEST}
                         onDragStart={onDragStart}
                     />
                 ))}
@@ -130,7 +132,7 @@ const TasksPage: React.FC<TasksPageProps> = ({ tasks, users, currentUser, onSave
     };
     
     const handleDrop = (e: React.DragEvent<HTMLDivElement>, newStatus: TaskStatus) => {
-        if (currentUser.role !== Role.ADMIN) return;
+        if (currentUser.role === Role.GUEST) return;
         const taskId = e.dataTransfer.getData("taskId");
         const taskToUpdate = tasks.find(t => t.id === taskId);
         if (taskToUpdate && taskToUpdate.status !== newStatus) {
@@ -142,8 +144,8 @@ const TasksPage: React.FC<TasksPageProps> = ({ tasks, users, currentUser, onSave
     return (
         <div className="p-8 h-full flex flex-col">
             <div className="flex justify-between items-center mb-8">
-                <h1 className="text-3xl font-bold text-dark">Tasks Board</h1>
-                {currentUser.role === Role.ADMIN && (
+                <h1 className="text-3xl font-bold text-dark dark:text-light">Tasks Board</h1>
+                {currentUser.role !== Role.GUEST && (
                     <button
                         onClick={() => setEditingTask('new')}
                         className="flex items-center space-x-2 bg-secondary text-dark font-bold px-6 py-3 rounded-full shadow-lg hover:opacity-90 transition"

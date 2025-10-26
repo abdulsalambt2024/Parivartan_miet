@@ -1,5 +1,6 @@
 
 
+
 import { GoogleGenAI, Modality } from "@google/genai";
 
 // Assume process.env.API_KEY is configured in the environment
@@ -144,25 +145,55 @@ export const generateImage = async (prompt: string, aspectRatio: string): Promis
     }
 };
 
-// --- Search Grounding ---
-export const groundedSearch = async (query: string) => {
+export const generatePosterContent = async (details: { title: string; date: string; points: string }): Promise<string> => {
     const ai = checkAi();
+    const prompt = `
+        You are a creative assistant for a college NGO called PARIVARTAN that teaches underprivileged students.
+        Generate content for a promotional poster based on the following details.
+        The tone should be inspiring, friendly, and professional.
+        Provide the output in a structured format with clear headings (e.g., using Markdown: ## Headline, ## Body, etc.).
+
+        Details:
+        - Event/Topic Title: "${details.title}"
+        - Date/Time/Venue: "${details.date}"
+        - Key Points: "${details.points}"
+
+        Please generate the following sections:
+        1.  **Catchy Headline:** A short, impactful headline.
+        2.  **Engaging Body Text:** A paragraph (2-4 sentences) explaining the event/topic.
+        3.  **Visual Ideas:** 3 simple, distinct ideas for images or graphics that would fit the poster.
+        4.  **Call to Action:** A clear instruction for the viewer (e.g., "Register Now!", "Volunteer Today!").
+    `;
     try {
         const response = await ai.models.generateContent({
-            model: "gemini-2.5-flash",
-            contents: query,
-            config: {
-                tools: [{ googleSearch: {} }],
-            },
+            model: 'gemini-2.5-flash',
+            contents: prompt,
         });
-        const groundingChunks = response.candidates?.[0]?.groundingMetadata?.groundingChunks || [];
-        return {
-            text: response.text,
-            sources: groundingChunks.map(c => c.web).filter(Boolean),
-        };
+        return response.text;
     } catch (error) {
-        console.error("Error with grounded search:", error);
-        throw new Error("Failed to perform grounded search.");
+        console.error("Error generating poster content:", error);
+        throw new Error("Failed to generate poster content.");
+    }
+};
+
+export const enhanceImage = async (imageDataUrl: string): Promise<string> => {
+    const ai = checkAi();
+    const enhancementPrompt = "Subtly enhance this image. Improve sharpness, balance lighting, and make colors more vibrant without making it look artificial. Do not add, remove, or change any objects in the image.";
+    try {
+        const imagePart = dataUrlToGenerativePart(imageDataUrl);
+        const response = await ai.models.generateContent({
+            model: 'gemini-2.5-flash-image',
+            contents: { parts: [imagePart, { text: enhancementPrompt }] },
+            config: { responseModalities: [Modality.IMAGE] },
+        });
+        const editedImagePart = response.candidates[0].content.parts.find(part => part.inlineData);
+        if (editedImagePart && editedImagePart.inlineData) {
+            return `data:${editedImagePart.inlineData.mimeType};base64,${editedImagePart.inlineData.data}`;
+        }
+        throw new Error("No enhanced image was returned from the request.");
+    } catch (error) {
+        console.error("Error enhancing image:", error);
+        throw new Error("Failed to enhance the image.");
     }
 };
 
@@ -207,19 +238,21 @@ export const transcribeAudio = (audioBlob: Blob): Promise<string> => {
 
       let fullTranscription = '';
 
-      const session = await ai.live.connect({
+      const sessionPromise = ai.live.connect({
         model: 'gemini-2.5-flash-native-audio-preview-09-2025',
         config: {
           inputAudioTranscription: {},
         },
         callbacks: {
           onopen: () => {
-            session.sendRealtimeInput({
-              media: { data: base64Audio, mimeType: 'audio/webm' },
+            sessionPromise.then(session => {
+              session.sendRealtimeInput({
+                media: { data: base64Audio, mimeType: 'audio/webm' },
+              });
+              // Since we sent the whole blob, we can close the stream.
+              // This is a simplified use of the Live API for one-shot transcription.
+              setTimeout(() => session.close(), 1000);
             });
-            // Since we sent the whole blob, we can close the stream.
-            // This is a simplified use of the Live API for one-shot transcription.
-            setTimeout(() => session.close(), 1000);
           },
           onmessage: (message) => {
             if (message.serverContent?.inputTranscription) {
