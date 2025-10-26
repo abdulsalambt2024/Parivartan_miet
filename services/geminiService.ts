@@ -1,4 +1,5 @@
 
+
 import { GoogleGenAI, Modality } from "@google/genai";
 
 // Assume process.env.API_KEY is configured in the environment
@@ -69,6 +70,20 @@ export const quickEdit = async (text: string, instruction: string): Promise<stri
     } catch (error) {
         console.error("Error with quick edit:", error);
         return "An error occurred during quick edit.";
+    }
+}
+
+export const generateTaskDescription = async (title: string): Promise<string> => {
+    const ai = checkAi();
+    try {
+        const response = await ai.models.generateContent({
+            model: 'gemini-2.5-flash-lite',
+            contents: `You are a project manager for a student NGO that teaches underprivileged kids. Write a brief, clear, and actionable description for a task with the following title. The description should be 1-2 sentences and motivate the volunteer. Title: "${title}"`,
+        });
+        return response.text;
+    } catch (error) {
+        console.error("Error generating task description:", error);
+        return "An error occurred while generating the description.";
     }
 }
 

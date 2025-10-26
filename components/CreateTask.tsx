@@ -1,5 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import { Task, User, Role } from '../types';
+import { SparklesIcon } from './Icons';
+import { generateTaskDescription } from '../services/geminiService';
 
 interface CreateTaskProps {
   onClose: () => void;
@@ -13,6 +15,7 @@ const CreateTask: React.FC<CreateTaskProps> = ({ onClose, onSaveTask, taskToEdit
   const [description, setDescription] = useState('');
   const [dueDate, setDueDate] = useState('');
   const [assigneeId, setAssigneeId] = useState<string | undefined>(undefined);
+  const [isGenerating, setIsGenerating] = useState(false);
 
   const isEditing = !!taskToEdit;
   const memberUsers = users.filter(u => u.role !== Role.GUEST);
@@ -25,6 +28,19 @@ const CreateTask: React.FC<CreateTaskProps> = ({ onClose, onSaveTask, taskToEdit
       setAssigneeId(taskToEdit.assigneeId);
     }
   }, [taskToEdit, isEditing]);
+
+  const handleGenerateDescription = async () => {
+    if (!title) return;
+    setIsGenerating(true);
+    try {
+        const generatedDesc = await generateTaskDescription(title);
+        setDescription(generatedDesc);
+    } catch (error) {
+        console.error(error);
+    } finally {
+        setIsGenerating(false);
+    }
+  };
 
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault();
@@ -65,12 +81,24 @@ const CreateTask: React.FC<CreateTaskProps> = ({ onClose, onSaveTask, taskToEdit
               className="w-full p-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-primary focus:border-primary transition"
               required
             />
-            <textarea
-              className="w-full h-24 p-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-primary focus:border-primary transition"
-              placeholder="Description (optional)"
-              value={description}
-              onChange={(e) => setDescription(e.target.value)}
-            ></textarea>
+            <div className="relative">
+                <textarea
+                  className="w-full h-24 p-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-primary focus:border-primary transition"
+                  placeholder="Description (optional)"
+                  value={description}
+                  onChange={(e) => setDescription(e.target.value)}
+                ></textarea>
+                <button 
+                    type="button" 
+                    onClick={handleGenerateDescription}
+                    disabled={!title || isGenerating}
+                    className="absolute bottom-2 right-2 flex items-center space-x-1 px-2 py-1 text-xs bg-primary/10 text-primary rounded-md hover:bg-primary/20 disabled:opacity-50 disabled:cursor-not-allowed"
+                    title="Generate description from title"
+                >
+                    <SparklesIcon className="w-4 h-4" />
+                    <span>{isGenerating ? 'Generating...' : 'AI ✨'}</span>
+                </button>
+            </div>
             <div className="grid grid-cols-2 gap-4">
                 <div>
                     <label className="block text-sm font-medium text-gray-700 mb-1">Due Date</label>
