@@ -19,16 +19,15 @@
       theme: {
         extend: {
           colors: {
-            // New color palette for better visibility and aesthetics
-            background: 'hsl(210 40% 98%)', // Almost white
+            background: 'hsl(210 40% 98%)',
             foreground: 'hsl(222.2 84% 4.9%)',
             card: 'hsl(0 0% 100%)',
             'card-foreground': 'hsl(222.2 84% 4.9%)',
             popover: 'hsl(0 0% 100%)',
             'popover-foreground': 'hsl(222.2 84% 4.9%)',
-            primary: 'hsl(244, 75%, 58%)', // Vibrant blue
+            primary: 'hsl(244, 75%, 58%)',
             'primary-foreground': 'hsl(210 40% 98%)',
-            secondary: 'hsl(42, 95%, 52%)', // Bright yellow
+            secondary: 'hsl(42, 95%, 52%)',
             'secondary-foreground': 'hsl(222.2 84% 4.9%)',
             muted: 'hsl(210 40% 96.1%)',
             'muted-foreground': 'hsl(215.4 16.3% 46.9%)',
@@ -39,8 +38,6 @@
             border: 'hsl(214.3 31.8% 91.4%)',
             input: 'hsl(214.3 31.8% 91.4%)',
             ring: 'hsl(244, 75%, 58%)',
-
-            // Dark mode colors
             dark: {
               background: 'hsl(222.2 84% 4.9%)',
               foreground: 'hsl(210 40% 98%)',
@@ -73,20 +70,31 @@
     <link rel="preconnect" href="https://fonts.googleapis.com">
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
     <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&display=swap" rel="stylesheet">
-
-<script type="importmap">
-{
-  "imports": {
-    "react/": "https://aistudiocdn.com/react@^19.2.0/",
-    "react": "https://aistudiocdn.com/react@^19.2.0",
-    "@google/genai": "https://aistudiocdn.com/@google/genai@^1.26.0",
-    "react-dom/": "https://aistudiocdn.com/react-dom@^19.2.0/",
-    "@supabase/supabase-js": "https://aistudiocdn.com/@supabase/supabase-js@^2.45.0"
-  }
-}
-</script>
+    <style>
+      /* Simple animation for AI chat bot typing indicator */
+      @keyframes pulse {
+        0%, 100% { opacity: 1; }
+        50% { opacity: 0.5; }
+      }
+      .animate-pulse {
+        animation: pulse 1.4s infinite ease-in-out;
+      }
+    </style>
 </head>
 <body class="bg-background text-foreground font-sans">
-    <div id="root"></div>
+    <div id="app">
+      <div class="min-h-screen flex items-center justify-center bg-background"><p>Loading...</p></div>
+    </div>
+    
+    <!-- Third-party Libraries -->
+    <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+    <script type="module">
+      import { GoogleGenAI, Modality } from "https://aistudiocdn.com/@google/genai@^1.26.0";
+      window.GoogleGenAI = GoogleGenAI;
+      window.Modality = Modality;
+    </script>
+
+    <!-- Application Logic -->
+    <script type="module" src="/script.js"></script>
 </body>
 </html>
